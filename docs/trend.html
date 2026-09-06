@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Exam OS · 추세</title>
+<style>
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#0f1115;color:#e6e8ee;
+ font:14px/1.55 Pretendard,"Pretendard Variable",system-ui,-apple-system,"Segoe UI",sans-serif;
+ font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.wrap{max-width:720px;margin:0 auto;padding:16px 14px 48px}
+h2,summary{font-size:14px;font-weight:600;margin:0}
+.mod{background:#171a21;border:1px solid #222734;border-radius:10px;padding:14px;margin:0 0 12px}
+.mod>h2{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+details.mod{padding:0}
+details.mod>summary{padding:14px;cursor:pointer;margin:0;list-style:none;display:flex;gap:8px}
+details.mod>summary::-webkit-details-marker{display:none}
+details.mod>summary::after{content:"+";margin-left:auto;color:#9aa3b2;font-weight:400}
+details.mod[open]>summary::after{content:"\2212"}
+details.mod>*:not(summary){padding:0 14px 14px}
+.sum{margin-left:auto;color:#9aa3b2;font-weight:400;font-size:12px}
+.hud{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.hud b{font-size:22px;font-weight:700;letter-spacing:-.02em;display:block}
+.hud-meta{text-align:right;color:#9aa3b2;font-size:12px}
+.mono{font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;font-size:11px}
+.na{display:inline-block;border:1px dashed #3a4152;border-radius:5px;padding:1px 7px;
+ color:#9aa3b2;font-size:12px}
+.note{color:#9aa3b2;font-size:11px;margin-top:8px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;color:#9aa3b2;font-size:12px;margin:0 0 8px}
+.legend span{display:flex;align-items:center;gap:6px}
+.sw-bar{width:10px;height:10px;border-radius:2px;background:#3ddc84}
+.sw-line{width:14px;height:0;border-top:2px solid #e6e8ee}
+.chart{position:relative}
+svg{width:100%;height:auto;display:block;overflow:visible}
+.grid{stroke:#222734;stroke-width:1}
+.axis{fill:#9aa3b2;font-size:10px}
+.tip{position:absolute;pointer-events:none;opacity:0;transition:opacity .08s;
+ background:#0f1115;border:1px solid #3a4152;border-radius:6px;padding:5px 8px;
+ font-size:12px;white-space:nowrap;transform:translate(-50%,-100%);z-index:2}
+.tip b{font-variant-numeric:tabular-nums}
+.sm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sm{background:#0f1115;border:1px solid #222734;border-radius:8px;padding:10px 11px}
+.sm-l{color:#9aa3b2;font-size:12px}
+.sm-v{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:2px 0 4px}
+.sm-d{font-size:11px;color:#9aa3b2}
+.up{color:#3ddc84}.down{color:#ff5c5c}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{text-align:right;padding:4px 6px;border-bottom:1px solid #222734}
+th:first-child,td:first-child{text-align:left}
+th{color:#9aa3b2;font-weight:600}
+td.zero{color:#9aa3b2}
+.err{color:#ff5c5c;font-size:12px}
+@media(max-width:480px){.sm-grid{grid-template-columns:1fr}}
+/* SVG 글자는 viewBox와 함께 줄어든다 — 좁은 화면에서는 사용자 단위를 키워 상쇄한다. */
+@media(max-width:560px){.axis{font-size:15px}}
+</style>
+</head><body><div class="wrap">
+
+<section class="mod">
+  <div class="hud">
+    <div><b id="hud-days">—</b><span class="mono" id="hud-range">불러오는 중</span></div>
+    <div class="hud-meta"><div id="hud-snaps">—</div><div class="mono" id="hud-last"></div></div>
+  </div>
+</section>
+
+<section class="mod">
+  <h2>일별 완료문항<span class="sum" id="daily-sum"></span></h2>
+  <div class="legend">
+    <span><i class="sw-bar"></i>하루 완료문항</span>
+    <span><i class="sw-line"></i>7일 이동평균</span>
+  </div>
+  <div class="chart"><div id="daily-body"></div><div class="tip" id="tip"></div></div>
+  <div class="note">빈 칸이 아니라 0으로 그립니다 — 기록이 없는 날도 처리량 0으로 세는 편이 이동평균을 정직하게 만듭니다.</div>
+</section>
+
+<section class="mod">
+  <h2>지표 추세<span class="sum" id="metric-sum"></span></h2>
+  <div class="sm-grid" id="metrics"></div>
+  <div class="note">스냅샷은 값이 달라진 시점만 쌓입니다. 점이 2개 미만이면 추세를 그리지 않습니다.</div>
+</section>
+
+<details class="mod">
+  <summary>표로 보기<span class="sum" id="table-sum"></span></summary>
+  <div id="table-body"></div>
+</details>
+
+<footer class="note" id="foot">docs/history.ndjson · docs/history-daily.ndjson 를 읽습니다. 두 파일은 history 워크플로가 04:00 KST 하루 한 번 git history 전체에서 다시 만듭니다.</footer>
+</div>
+
+<script>
+const C = {ink:"#e6e8ee", mut:"#9aa3b2", line:"#222734", card:"#171a21",
+           green:"#3ddc84", cyan:"#7dcfff", bad:"#ff5c5c"};
+
+async function ndjson(path) {
+  const res = await fetch(path, {cache: "no-store"});
+  if (!res.ok) throw new Error(path + " → HTTP " + res.status);
+  return res.text().then(t => t.trim().split("\n").filter(Boolean).map(l => JSON.parse(l)));
+}
+
+const esc = s => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const niceMax = v => {
+  if (v <= 0) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(v)));
+  return Math.ceil(v / (mag / 2)) * (mag / 2);
+};
+
+/** 바닥에 붙고 위쪽 두 모서리만 둥근 막대. */
+function barPath(x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h));
+  return `M${x} ${y + h}V${y + r}a${r} ${r} 0 0 1 ${r} ${-r}h${w - 2 * r}` +
+         `a${r} ${r} 0 0 1 ${r} ${r}V${y + h}Z`;
+}
+
+function movingAvg(values, win) {
+  return values.map((_, i) => {
+    const from = Math.max(0, i - win + 1);
+    const slice = values.slice(from, i + 1);
+    return slice.reduce((a, b) => a + b, 0) / slice.length;
+  });
+}
+
+function drawDaily(rows) {
+  const W = 720, H = 230, padL = 34, padR = 14, padT = 12, padB = 28;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const vals = rows.map(r => r.items);
+  const top = niceMax(Math.max(...vals, 1));
+  const y = v => padT + plotH - (v / top) * plotH;
+  const step = plotW / rows.length;
+  const bw = Math.max(2, step - 6);            // 막대 사이는 배경이 보이도록 띄운다
+  const off = (step - bw) / 2;
+  const avg = movingAvg(vals, 7);
+
+  let g = "";
+  for (let i = 0; i <= 4; i++) {
+    const v = top * i / 4, yy = y(v);
+    g += `<line class="grid" x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}"/>` +
+         `<text class="axis" x="${padL - 6}" y="${yy + 3}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+
+  let bars = "", hits = "", ticks = "";
+  const every = Math.max(1, Math.ceil(rows.length / 6));
+  rows.forEach((r, i) => {
+    const x = padL + i * step + off, h = plotH - (y(r.items) - padT);
+    bars += r.items > 0
+      ? `<path d="${barPath(x, y(r.items), bw, h, 4)}" fill="${C.green}"/>`
+      : `<line x1="${x}" y1="${padT + plotH}" x2="${x + bw}" y2="${padT + plotH}"
+              stroke="${C.mut}" stroke-width="2" stroke-dasharray="2 2"/>`;
+    hits += `<rect x="${x - off}" y="${padT}" width="${step}" height="${plotH}" fill="transparent"
+                   data-i="${i}" data-x="${padL + i * step + step / 2}"/>`;
+    if (i % every === 0 || i === rows.length - 1)
+      ticks += `<text class="axis" x="${x + bw / 2}" y="${H - 10}" text-anchor="middle">${r.date.slice(5)}</text>`;
+  });
+
+  const pts = avg.map((v, i) => `${padL + i * step + step / 2},${y(v)}`).join(" ");
+  const lineMarks =
+    `<polyline points="${pts}" fill="none" stroke="${C.card}" stroke-width="6" stroke-linejoin="round"/>` +
+    `<polyline points="${pts}" fill="none" stroke="${C.ink}" stroke-width="2" stroke-linejoin="round"/>` +
+    `<circle cx="${padL + (rows.length - 1) * step + step / 2}" cy="${y(avg[avg.length - 1])}" r="4"
+             fill="${C.ink}" stroke="${C.card}" stroke-width="2"/>`;
+  const lastAvg = avg[avg.length - 1].toFixed(1);
+
+  document.getElementById("daily-body").innerHTML =
+    `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="일별 완료문항 막대와 7일 이동평균">` +
+    g + bars + lineMarks + ticks +
+    `<text class="axis" x="${W - padR}" y="${y(avg[avg.length - 1]) - 10}" text-anchor="end"
+           fill="${C.ink}">7일 평균 ${lastAvg}</text>` +
+    `<g id="hits">${hits}</g></svg>`;
+
+  const tip = document.getElementById("tip");
+  const svg = document.querySelector("#daily-body svg");
+  svg.addEventListener("mousemove", e => {
+    const hit = e.target.closest("rect[data-i]");
+    if (!hit) { tip.style.opacity = 0; return; }
+    const i = +hit.dataset.i, box = svg.getBoundingClientRect();
+    tip.innerHTML = `${rows[i].date} · <b>${rows[i].items}</b>문항` +
+                    (rows[i].items === 0 ? " <span class='na'>기록 없음</span>" : "") +
+                    `<br><span style="color:${C.mut}">7일 평균 ${avg[i].toFixed(1)}</span>`;
+    tip.style.left = (hit.dataset.x / 720 * box.width) + "px";
+    tip.style.top = (e.clientY - box.top - 12) + "px";
+    tip.style.opacity = 1;
+  });
+  svg.addEventListener("mouseleave", () => tip.style.opacity = 0);
+
+  const recorded = vals.filter(v => v > 0).length;
+  document.getElementById("daily-sum").textContent =
+    `${rows.length}일 · 기록 ${recorded}일 · Σ ${vals.reduce((a, b) => a + b, 0)}문항`;
+}
+
+const METRICS = [
+  {label: "예제 적체",   get: r => r.queue?.backlog,          unit: "", good: "down"},
+  {label: "주간 완료문항", get: r => r.throughput?.week_items, unit: "", good: "up"},
+  {label: "파이프라인 회수율", get: r => r.method?.recovery_rate, unit: "%", good: "up"},
+  {label: "미코딩 행",   get: r => r.errorlog?.uncoded,       unit: "", good: "down"},
+];
+
+function sparkline(vals) {
+  const W = 150, H = 34, pad = 4;
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const x = i => pad + i * (W - 2 * pad) / Math.max(1, vals.length - 1);
+  const y = v => pad + (H - 2 * pad) * (1 - (v - lo) / span);
+  // 값은 스냅샷 시점에 계단처럼 바뀐다 — 직선 보간은 없던 중간값을 지어낸다.
+  let d = `M${x(0)} ${y(vals[0])}`;
+  for (let i = 1; i < vals.length; i++) d += `H${x(i)}V${y(vals[i])}`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="스냅샷 추세">` +
+         `<path d="${d}" fill="none" stroke="${C.cyan}" stroke-width="2" stroke-linejoin="round"/>` +
+         `<circle cx="${x(vals.length - 1)}" cy="${y(vals[vals.length - 1])}" r="4" fill="${C.cyan}"/></svg>`;
+}
+
+function drawMetrics(snaps) {
+  const host = document.getElementById("metrics");
+  let drawn = 0;
+  host.innerHTML = METRICS.map(m => {
+    const vals = snaps.map(m.get).filter(v => v !== null && v !== undefined);
+    const cur = vals.length ? vals[vals.length - 1] : null;
+    const head = `<div class="sm-l">${esc(m.label)}</div>`;
+    if (cur === null) return `<div class="sm">${head}<div class="sm-v"><span class="na">계산불가 · 기록 없음</span></div></div>`;
+    if (new Set(vals).size < 2) {
+      return `<div class="sm">${head}<div class="sm-v">${cur}${m.unit}</div>` +
+             `<div class="sm-d"><span class="na">추세 없음 · 표본 ${vals.length}점</span></div></div>`;
+    }
+    drawn++;
+    const delta = cur - vals[0];
+    const dir = delta === 0 ? "" : (delta > 0) === (m.good === "up") ? "up" : "down";
+    return `<div class="sm">${head}<div class="sm-v">${cur}${m.unit}</div>` +
+           sparkline(vals) +
+           `<div class="sm-d">첫 스냅샷 대비 <span class="${dir}">${delta > 0 ? "+" : ""}${delta.toFixed(
+              Number.isInteger(delta) ? 0 : 1)}${m.unit}</span></div></div>`;
+  }).join("");
+  document.getElementById("metric-sum").textContent =
+    drawn ? `추세 ${drawn}/${METRICS.length}개` : "표본 부족";
+}
+
+function drawTable(rows) {
+  document.getElementById("table-body").innerHTML =
+    `<table><thead><tr><th>날짜</th><th>완료문항</th><th>7일 평균</th></tr></thead><tbody>` +
+    (() => {
+      const avg = movingAvg(rows.map(r => r.items), 7);
+      return rows.map((r, i) =>
+        `<tr><td>${r.date}</td><td class="${r.items ? "" : "zero"}">${r.items}</td>` +
+        `<td class="zero">${avg[i].toFixed(1)}</td></tr>`).join("");
+    })() + `</tbody></table>`;
+  document.getElementById("table-sum").textContent = `${rows.length}행`;
+}
+
+(async () => {
+  try {
+    const [snaps, daily] = await Promise.all([
+      ndjson("history.ndjson"), ndjson("history-daily.ndjson"),
+    ]);
+    if (!daily.length) throw new Error("일별 계열이 비어 있습니다");
+
+    document.getElementById("hud-days").textContent = daily.length + "일";
+    document.getElementById("hud-range").textContent =
+      `${daily[0].date} ~ ${daily[daily.length - 1].date}`;
+    document.getElementById("hud-snaps").textContent = `스냅샷 ${snaps.length}건`;
+    document.getElementById("hud-last").textContent =
+      snaps.length ? snaps[snaps.length - 1].ts : "";
+
+    drawDaily(daily);
+    drawMetrics(snaps);
+    drawTable(daily);
+  } catch (e) {
+    document.querySelector(".wrap").insertAdjacentHTML("afterbegin",
+      `<section class="mod"><h2>시계열을 읽지 못했습니다</h2>` +
+      `<div class="err mono">${esc(e.message)}</div>` +
+      `<div class="note">history 워크플로가 아직 한 번도 돌지 않았거나, 로컬 파일로 직접 열어 ` +
+      `fetch가 막힌 경우입니다. GitHub Pages 주소로 열어 주세요.</div></section>`);
+  }
+})();
+</script>
+</body></html>
