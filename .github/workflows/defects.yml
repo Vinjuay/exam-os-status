@@ -1,0 +1,45 @@
+name: defects
+
+# 자동화 #6 — 결함 수치가 선을 넘으면 이슈로 올려 아침 판단 세션 입력으로 넘긴다.
+# history(04:00 KST)가 시계열을 갱신한 뒤, 아침 세션(06:40 KST) 전에 돈다.
+on:
+  schedule:
+    - cron: "0 20 * * *"   # 20:00 UTC = 05:00 KST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 결함 임계 검사
+        id: check
+        run: |
+          set +e
+          python3 .github/scripts/check_defects.py docs/index.html > report.txt 2>&1
+          code=$?
+          set -e
+          cat report.txt
+          if [ $code -ne 0 ]; then
+            echo "breach=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "breach=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 이슈 열기 / 닫기
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: defect-threshold
+          LABEL_COLOR: D93F0B
+          LABEL_DESC: 결함 수치가 임계를 넘음 — 아침 판단 세션 입력
+          TITLE: 결함 임계 초과 — 아침 판단 세션에서 처리
+          REPORT: report.txt
+          BREACH: ${{ steps.check.outputs.breach }}
+          INTRO: 대시보드 지표에서 아래 결함이 잡혔습니다. 아침 판단 세션의 입력으로 쓰세요.
+          CLOSE_NOTE: 결함 수치가 임계 아래로 돌아왔습니다. 자동으로 닫습니다.
+        run: .github/scripts/notify_issue.sh

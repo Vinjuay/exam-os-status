@@ -79,7 +79,12 @@ def extract(html: str) -> dict:
     out["errorlog"] = {
         "uncoded": _num(r'④</span>약점 \(실패 코드 분포\)<span class="sum">미코딩 (\d+)', html),
         "exception": _num(r'④</span>약점 \(실패 코드 분포\)<span class="sum">미코딩 \d+ · 예외 (\d+)', html),
+        # 날짜가 비어 창 집계에서 빠지는 행 — 지표가 아니라 결함 수치다.
+        "undated": _num(r"날짜 공란 (\d+)행", html),
     }
+
+    # 「계산불가」가 늘었다는 것은 잴 수 없는 자리가 새로 생겼다는 뜻이다(야간 검토 항목).
+    out["uncomputable"] = html.count("계산불가")
 
     scores: dict = {}
     for card in re.findall(r'<div class="card sc">(.*?)</svg>', html, re.S):
