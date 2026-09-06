@@ -1,0 +1,43 @@
+name: freshness
+
+# 자동화 #1 — 로컬 생성 스크립트가 멈춰도 페이지는 낡은 값을 그대로 보여준다(무증상).
+# 기준 시간을 넘기면 이슈를 열고, 갱신이 돌아오면 그 이슈를 닫는다.
+on:
+  schedule:
+    - cron: "0 */3 * * *"   # UTC 3시간 간격
+  workflow_dispatch:
+    inputs:
+      max_age_hours:
+        description: "허용 경과 시간"
+        required: false
+        default: "24"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 신선도·무결성 검사
+        id: check
+        env:
+          MAX_AGE: ${{ github.event.inputs.max_age_hours || '24' }}
+        run: |
+          set +e
+          python3 .github/scripts/check_page.py docs/index.html --max-age-hours "$MAX_AGE" \
+            > report.txt 2>&1
+          code=$?
+          set -e
+          cat report.txt
+          echo "stale=$([ $code -ne 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: 이슈 열기 / 닫기
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STALE: ${{ steps.check.outputs.stale }}
+          MAX_AGE: ${{ github.event.inputs.max_age_hours || '24' }}
+        run: .github/scripts/notify_stale.sh
