@@ -26,6 +26,11 @@ jobs:
       - name: 페이지 무결성 (#2)
         run: python3 .github/scripts/check_page.py docs/index.html
 
+      - name: 지표 추출 점검 (#4·#5)
+        # 생성기가 페이지 구조를 바꾸면 지표 추출이 조용히 null이 된다.
+        # 시계열과 커밋 메시지가 함께 비는 것을 여기서 잡는다.
+        run: python3 .github/scripts/commit_message.py docs/index.html --check
+
       - name: 변경 범위 결정
         id: range
         env:
