@@ -5,3 +5,4 @@
 !/docs/
 # CI(무결성·신선도·경로 가드)는 저장소에 있어야 돌아간다.
 !/.github/
+.github/scripts/__pycache__/
