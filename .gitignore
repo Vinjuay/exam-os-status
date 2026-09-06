@@ -1,0 +1,5 @@
+# GitHub Pages 배포는 docs/ 한 폴더만 올린다 (대시보드_설계v1 DEPLOY).
+# 스크립트·config.json·logs·백업은 로컬에만 둔다 — 저장소를 public으로 열어도 새지 않는다.
+/*
+!/.gitignore
+!/docs/
