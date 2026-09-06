@@ -1,0 +1,44 @@
+name: validate
+
+# 자동화 #2·#3 — 푸시된 결과물이 온전한지, 그리고 docs/ 밖 파일이 섞이지 않았는지 검사한다.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # 대시보드 refresh 커밋이 하루 수십 번이므로 같은 ref의 이전 실행은 취소한다.
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  page:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 페이지 무결성 (#2)
+        run: python3 .github/scripts/check_page.py docs/index.html
+
+      - name: 변경 범위 결정
+        id: range
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            echo "range=origin/$GITHUB_BASE_REF...HEAD" >> "$GITHUB_OUTPUT"
+          elif [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+               && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "range=$BEFORE..HEAD" >> "$GITHUB_OUTPUT"
+          else
+            echo "range=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 커밋 경로 가드 (#3)
+        run: .github/scripts/guard_paths.sh "${{ steps.range.outputs.range }}"
