@@ -59,11 +59,25 @@ def _fraction(metrics: dict, section: str, num: str, den: str):
     return f"{a}/{b}" if b is not None else a
 
 
+def repo_root() -> str:
+    """호출자의 작업 디렉터리에 기대지 않는다 — 스크립트 위치에서 저장소를 찾는다.
+
+    09-07 실측: 노트북 생성 스크립트가 다른 cwd에서 부르는 바람에 `git show`가
+    조용히 실패해 「직전 판 없음」으로 빠졌고, 커밋 본문이 통째로 비었다.
+    """
+    here = Path(__file__).resolve().parent
+    try:
+        return subprocess.run(["git", "-C", str(here), "rev-parse", "--show-toplevel"],
+                              check=True, capture_output=True, text=True).stdout.strip()
+    except subprocess.CalledProcessError:
+        return str(here)
+
+
 def previous_page(ref: str = "HEAD") -> str | None:
     """직전 커밋에 담긴 페이지. 첫 커밋이면 비교 대상이 없다."""
     try:
-        return subprocess.run(["git", "show", f"{ref}:{PAGE}"], check=True,
-                              capture_output=True, text=True).stdout
+        return subprocess.run(["git", "-C", repo_root(), "show", f"{ref}:{PAGE}"],
+                              check=True, capture_output=True, text=True).stdout
     except subprocess.CalledProcessError:
         return None
 

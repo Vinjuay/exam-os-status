@@ -38,6 +38,11 @@ jobs:
       - name: 이슈 열기 / 닫기
         env:
           GH_TOKEN: ${{ github.token }}
-          STALE: ${{ steps.check.outputs.stale }}
-          MAX_AGE: ${{ github.event.inputs.max_age_hours || '24' }}
-        run: .github/scripts/notify_stale.sh
+          LABEL: dashboard-stale
+          LABEL_DESC: docs/index.html 갱신 정지 또는 무결성 실패
+          TITLE: 대시보드 갱신 정지 의심 — docs/index.html
+          REPORT: report.txt
+          BREACH: ${{ steps.check.outputs.stale }}
+          INTRO: 예약 검사에서 `docs/index.html`이 기준 시간을 넘겨 갱신되지 않았거나 검사에 실패했습니다. 로컬 생성 스크립트가 살아 있는지 먼저 확인하세요.
+          CLOSE_NOTE: 갱신이 돌아왔습니다. 자동으로 닫습니다.
+        run: .github/scripts/notify_issue.sh
