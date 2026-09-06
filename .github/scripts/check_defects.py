@@ -88,9 +88,19 @@ def drift_uncomputable(now, base):
 
 
 def drift_recovery(now, base):
+    """회수율은 분모가 같을 때만 비교한다.
+
+    코호트 창이 `[그 주 토요일 −20, −7]`이라 일요일→월요일로 주가 넘어가면 창이
+    통째로 옮겨가고 n이 바뀐다. 09-07 실측: 11.4% → 5.4%를 악화로 올렸으나
+    실제로는 n이 35 → 74로 커진 창 이동이었다(해결 행 수는 그대로). 분모를 모르는
+    경우도 비교하지 않는다 — 오탐 한 번이 알림 전체의 신뢰를 깎는다.
+    """
+    a, b = _get(base, "method", "cohort_n"), _get(now, "method", "cohort_n")
+    if a is None or b is None or a != b:
+        return None
     line = _worse(now, base, ("method", "recovery_rate"), "파이프라인 회수율이 떨어졌습니다:",
                   unit="%", higher_is_worse=False)
-    return (line, "예제가 큐에서 빠져나오지 못하고 있습니다.") if line else None
+    return (line, "코호트 창은 그대로인데 회수율만 떨어졌습니다 — 예제가 큐에서 빠져나오지 못하고 있습니다.") if line else None
 
 
 RULES = [
