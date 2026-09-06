@@ -42,6 +42,8 @@ def extract(html: str) -> dict:
         "registered": _num(r"METHOD 인덱스 등록</span><b>(\d+)개", html),
         "candidates": _num(r"미등록 후보 · 예제 조달 대상</span><b[^>]*>(\d+)</b>", html),
         "recovery_rate": _num(r"파이프라인 회수율</span><b><b[^>]*>([\d.]+)%", html, float),
+        # 회수율의 분모. 주가 넘어가면 코호트 창이 통째로 옮겨가 n이 바뀐다.
+        "cohort_n": _num(r"코호트 n=(\d+)", html),
         "seed_rate": _num(r"시딩 실행률 · 예제 해결률</span><b><b>([\d.]+)%", html, float),
         "solve1_rate": _num(r"1차 <b>([\d.]+)%", html, float),
     }
