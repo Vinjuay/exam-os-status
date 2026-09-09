@@ -1,0 +1,1379 @@
+<title>사문 개수 세기 파훼법</title>
+<style>
+:root{--bg:#0f1115;--mod:#171a21;--line:#222734;--fg:#e6e8ee;--mut:#9aa3b2;--acc:#7dcfff;--acc-line:#2b4a5e;
+ --code-bg:#0b0d12;--quote:#1d2130;--ok:#63d68f;--bad:#ff6b6b;
+ --cA:#7dcfff;--cB:#c792ea;--cC:#5fd3bc;--cD:#ffb86b;--cE:#ff7b8a;--cF:#9be27a;--cP:#d7e07a;--cM:#b0b8c8;
+ --map-line:#9aa3b2;--map-hatch:#3a3f4d;color-scheme:dark}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f4f5f8;--mod:#ffffff;--line:#dfe3ea;--fg:#1b1f27;--mut:#5b6473;--acc:#0b6bb8;--acc-line:#9cc3e6;
+ --code-bg:#eef0f4;--quote:#eef0f4;--ok:#1d8f4a;--bad:#c9303e;
+ --cA:#1f6fb0;--cB:#7a3fb5;--cC:#148a75;--cD:#b85f00;--cE:#d1344f;--cF:#3f8f2a;--cP:#7a7f1a;--cM:#5b6473;
+ --map-line:#5b6473;--map-hatch:#cfd4dd;color-scheme:light}}
+:root[data-theme="light"]{--bg:#f4f5f8;--mod:#ffffff;--line:#dfe3ea;--fg:#1b1f27;--mut:#5b6473;--acc:#0b6bb8;--acc-line:#9cc3e6;
+ --code-bg:#eef0f4;--quote:#eef0f4;--ok:#1d8f4a;--bad:#c9303e;
+ --cA:#1f6fb0;--cB:#7a3fb5;--cC:#148a75;--cD:#b85f00;--cE:#d1344f;--cF:#3f8f2a;--cP:#7a7f1a;--cM:#5b6473;
+ --map-line:#5b6473;--map-hatch:#cfd4dd;color-scheme:light}
+:root[data-theme="dark"]{--bg:#0f1115;--mod:#171a21;--line:#222734;--fg:#e6e8ee;--mut:#9aa3b2;--acc:#7dcfff;--acc-line:#2b4a5e;
+ --code-bg:#0b0d12;--quote:#1d2130;--ok:#63d68f;--bad:#ff6b6b;
+ --cA:#7dcfff;--cB:#c792ea;--cC:#5fd3bc;--cD:#ffb86b;--cE:#ff7b8a;--cF:#9be27a;--cP:#d7e07a;--cM:#b0b8c8;
+ --map-line:#9aa3b2;--map-hatch:#3a3f4d;color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);
+ font:14px/1.6 Pretendard,"Pretendard Variable",system-ui,-apple-system,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+ font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.wrap{max-width:760px;margin:0 auto;padding:16px 14px 56px}
+a{color:var(--acc);text-decoration:none;border-bottom:1px solid var(--acc-line)}
+a:hover,a:focus-visible{border-bottom-color:var(--acc);outline:none}
+a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+header.top{margin:6px 0 14px}
+header.top .eyebrow{color:var(--mut);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+header.top h1{font-size:22px;line-height:1.25;margin:4px 0 8px;font-weight:700;text-wrap:balance}
+header.top .meta{color:var(--mut);font-size:12px;display:flex;flex-wrap:wrap;gap:6px 14px}
+.toc{background:var(--mod);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 12px}
+.toc ol{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:4px 14px;font-size:13px}
+.toc a{border:0;color:var(--fg)}
+.toc a:hover{color:var(--acc)}
+.mod{background:var(--mod);border:1px solid var(--line);border-radius:10px;padding:14px;margin:0 0 12px}
+.mod>h2{font-size:15px;font-weight:600;margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:14px;font-weight:600;margin:16px 0 6px}
+p{margin:8px 0}
+ul,ol{padding-left:20px;margin:6px 0}
+li{margin:2px 0}
+hr{display:none}
+strong{font-weight:600}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding","Nanum Gothic Coding",monospace;font-size:12.5px;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--line)}
+pre{background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto;margin:8px 0;font-size:12.5px;line-height:1.55}
+pre code{background:none;border:0;padding:0;font-size:inherit}
+pre.card{border-color:var(--acc-line);box-shadow:inset 3px 0 0 var(--acc)}
+blockquote{margin:8px 0;padding:8px 12px;background:var(--quote);border-left:3px solid var(--line);border-radius:0 8px 8px 0;color:var(--fg)}
+blockquote p{margin:4px 0}
+.tw{overflow-x:auto;margin:8px 0;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-size:11.5px;color:var(--mut);letter-spacing:.04em;font-weight:600;white-space:nowrap}
+td:first-child{white-space:nowrap}
+.k{font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+.k-A{color:var(--cA)}.k-B{color:var(--cB)}.k-C{color:var(--cC)}.k-D{color:var(--cD)}.k-E{color:var(--cE)}.k-F{color:var(--cF)}.k-P{color:var(--cP)}.k-M{color:var(--cM)}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--bad);font-weight:700}
+figure.map{margin:8px 0 12px;padding:8px;background:var(--code-bg);border:1px solid var(--line);border-radius:8px}
+figure.map svg{display:block;width:100%;height:auto;max-height:420px}
+figure.map figcaption{color:var(--mut);font-size:12px;margin-top:6px}
+.map-title{fill:var(--fg);font-size:15px;font-weight:600}
+.map-row{fill:var(--mut);font-size:12px}
+.map-code text{font-size:22px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+.map-code .map-sub{fill:var(--mut);font-size:11px;font-weight:400;font-family:inherit}
+.map-x{fill:var(--mut);font-size:12px}
+footer{color:var(--mut);font-size:12px;margin-top:8px}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+html{scroll-behavior:smooth}
+</style>
+<div class="wrap">
+<header class="top">
+ <div class="eyebrow">Exam OS · 방법론 · 사회문화</div>
+ <h1>사문 개수 세기 유형 파훼법 v1</h1>
+ <div class="meta"><span>2026-09-09 · 대상: 우뢰 · 기준: 2015 개정 교과서 + 평가원 관례 · 9평 9번 공식 정답 미확인(§10)</span><span>위첨자(ᴬ ᴮ ᶜ ᴰ ᴱ ᶠ ᴾ ᵅ ˢ ᵃ ⁼) = 펜으로 명사 위에 쓰는 글자. 손글씨는 그냥 작은 대문자로.</span></div>
+</header>
+<nav class="toc" aria-label="목차"><ol><li><a href="#1">1. 철학 + 절차</a></li><li><a href="#2">2. 원형 코드표 (고정 지도)</a></li><li><a href="#3">3. 선지 공식표</a></li><li><a href="#4">4. 개체 추출 규칙</a></li><li><a href="#5-1">5. 지위·역할 갈등 1초 규칙</a></li><li><a href="#6">6. 정합성 검산</a></li><li><a href="#7-9-9">7. 9평 9번 완전 풀이</a></li><li><a href="#8-5-1">8. 드릴 5 (정답 각 1개 · 모호 칸이 정답을 가르지 않도록 설계 · 재검산 완료)</a></li><li><a href="#9">9. 한 화면 암기 카드</a></li><li><a href="#10">10. 미확정 사항 · 정답표로 확인할 것</a></li><li><a href="#_1">변경 기록</a></li></ol></nav>
+
+<section class="mod"><h2 id="1">1. 철학 + 절차</h2>
+<p><strong>한 줄: 분류하지 말고 글자를 찍어라 → 글자를 더하고 빼라 → 정답이 하나인지 세라.</strong></p>
+<ul>
+<li>지도는 머릿속에 고정. 종이에 벤다이어그램을 그리지 않는다. 명사 위에 코드 한 글자.</li>
+<li>선지 = 범주가 아니라 코드의 합·차. 공통 문자를 소거하면 검산 범위가 줄어든다.</li>
+<li>마지막 15초 = O 개수 세기. 1개가 아니면 동시 O 선지의 공통 칸이 ±1 틀린 것.</li>
+</ul>
+<p>목표 120초(아래 표 합계) · 절대 상한 180초(초과 → ★ 찍고 다음 문항). 밑줄형 목표 90 · 인물 행렬형 150.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>초</th>
+<th>눈</th>
+<th>펜이 하는 동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0–8</td>
+<td>발문</td>
+<td>모드 단어에 ○. <code>적혀 있는·제시된·나타난</code>=전수 / <code>㉠~㉧</code>=밑줄 / <code>갑의·소속·속한·내집단·외집단·준거·거쳐 온·공통으로</code>=인물 / <code>옳지 않은</code>=□ 치고 여백에 <strong>X1</strong></td>
+</tr>
+<tr>
+<td>8–20</td>
+<td>선지 ①~⑤</td>
+<td>선지 옆에 차식+목표값. <code>③ A+E=3?</code> <code>④ D=E?</code> <code>⑤ CDFPα−E=1?</code> <code>② ˢ−ᵃ=3?</code> <code>① ⚡갑·병?</code>. <strong>선지에 없는 층은 OFF</strong>(지위·⚡·소속)</td>
+</tr>
+<tr>
+<td>20–75</td>
+<td>본문 1회 통독</td>
+<td>집단·기관 명사구 위에 코드 1글자. 재언급 <code>⁼</code>. 지위 명사 위 <code>ˢ/ᵃ</code>(지위층 ON일 때만). 겹침·고민 문장 여백 <code>⚡?</code>. 상태어 옆 <code>◐(졸업·탈퇴) △(지원·목표) ★(준거) ⊘(소속감 없음) ∅(없다)</code>. 문장 끝마다 "이 문장 코드 몇 개?"</td>
+</tr>
+<tr>
+<td>75–85</td>
+<td>여백</td>
+<td>집계 한 줄 <code>A1 B1 C0 D2 E3 F0 P0 α2 ‖ ˢ3 ᵃ1 ‖ ⚡갑</code>. 인물 모드면 행렬(§4.4)</td>
+</tr>
+<tr>
+<td>85–100</td>
+<td>선지</td>
+<td>차식에 대입 → 선지 번호 위에 O/X 크게</td>
+</tr>
+<tr>
+<td>100–115</td>
+<td>여백</td>
+<td>O 개수. =1 → 마킹. ≥2 / =0 → §6 <strong>1회만</strong></td>
+</tr>
+<tr>
+<td>115–120</td>
+<td>OMR</td>
+<td>마킹. 미해결 → ★ + 확정 X 지우고 남은 것</td>
+</tr>
+</tbody>
+</table></div>
+<p>원칙 3: 다시 읽지 않는다 · 그리지 않는다 · 표는 인물 모드에서만.</p>
+<p><strong>우뢰 원안(벤 영역 기호화 A~E·α)에서 달라진 것</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>원안</th>
+<th>v1</th>
+<th>이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>문제마다 벤다이어그램을 그리고 글자를 채움</td>
+<td>지도는 암기, 본문 명사 위에 코드만 찍음</td>
+<td>그리는 30초 제거, 시선 이동 제거</td>
+</tr>
+<tr>
+<td>이익 사회 안의 A~E + 매체 α</td>
+<td>F(가족·친족)·P(또래) 층 추가, ∅(안 셈) 행 명시</td>
+<td>공동 사회·1차 집단·1차적 기관 선지 대응</td>
+</tr>
+<tr>
+<td>선지 판단 때 범주 전체를 셈</td>
+<td>선지 옆에 <strong>소거 후 차식</strong>을 먼저 적음</td>
+<td>잘못 세도 결과가 안 변하는 칸이 드러남</td>
+</tr>
+<tr>
+<td>검산 없음</td>
+<td>O 개수 = 1 검산 + 공통 칸 진단 + 선지 숫자 역산</td>
+<td>출제자의 함정 위치가 역으로 잡힘</td>
+</tr>
+<tr>
+<td>전수형만</td>
+<td>전수·밑줄·인물 행렬·옳지 않은 것 4모드</td>
+<td>발문 문언으로 도구를 바꿈</td>
+</tr>
+<tr>
+<td>모호한 분류는 그때그때 판단</td>
+<td>모호 칸 목록(§10.2) + "그 선지를 의심" 규칙</td>
+<td>시험장에서 고민하지 않고 흡수</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+</section>
+<section class="mod"><h2 id="2">2. 원형 코드표 (고정 지도)</h2>
+<figure class="map"><svg viewBox="0 0 640 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="고정 지도: 왼쪽 원은 공식 조직, 오른쪽 원은 자발적 결사체, 가로선 위는 비공식적 사회화 기관, 아래는 공식적 사회화 기관">
+  <defs>
+    <pattern id="hatch" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="var(--map-hatch)" stroke-width="1.5"/>
+    </pattern>
+    <clipPath id="clipRight"><circle cx="360" cy="200" r="130"/></clipPath>
+  </defs>
+  <g clip-path="url(#clipRight)"><rect x="0" y="250" width="640" height="130" fill="url(#hatch)"/></g>
+  <line x1="8" y1="250" x2="620" y2="250" stroke="var(--map-line)" stroke-width="2"/>
+  <circle cx="220" cy="200" r="130" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+  <circle cx="360" cy="200" r="130" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+  <circle cx="420" cy="165" r="45" fill="none" stroke="var(--cD)" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="150" y="58" class="map-title" text-anchor="middle">공식 조직</text>
+  <text x="450" y="58" class="map-title" text-anchor="middle">자발적 결사체</text>
+  <text x="8" y="150" class="map-row">비공식적</text>
+  <text x="8" y="168" class="map-row">사회화 기관</text>
+  <text x="8" y="308" class="map-row">공식적</text>
+  <text x="8" y="326" class="map-row">사회화 기관</text>
+  <g class="map-code" text-anchor="middle">
+    <text x="150" y="182" fill="var(--cA)">A</text><text x="150" y="203" class="map-sub">직장</text>
+    <text x="290" y="182" fill="var(--cB)">B</text><text x="290" y="203" class="map-sub">단체</text>
+    <text x="360" y="104" fill="var(--cC)">C</text><text x="360" y="125" class="map-sub">외부 동호회</text>
+    <text x="420" y="165" fill="var(--cD)">D</text><text x="420" y="186" class="map-sub">사내·교내</text>
+    <text x="215" y="298" fill="var(--cE)">E</text><text x="215" y="319" class="map-sub">학교·학과</text>
+    <text x="562" y="118" fill="var(--cF)">F</text><text x="562" y="139" class="map-sub">가족·또래</text>
+    <text x="562" y="200" fill="var(--cM)">α</text><text x="562" y="221" class="map-sub">매체</text>
+  </g>
+  <text x="400" y="322" class="map-x" text-anchor="middle">출제 X</text>
+  <text x="562" y="322" class="map-x" text-anchor="middle">출제 X</text>
+</svg>
+<figcaption>고정 지도 — 왼쪽 원 공식 조직 · 오른쪽 원 자발적 결사체 · 가로선 위 비공식적/아래 공식적 사회화 기관 · 빗금 = 출제 X</figcaption></figure>
+
+<div class="tw"><table style="min-width:1000px">
+<thead>
+<tr>
+<th>코드</th>
+<th>이름</th>
+<th>예시</th>
+<th>사회·집단</th>
+<th>공식조직</th>
+<th>자결</th>
+<th>비공식조직</th>
+<th>사회화 기관</th>
+<th>함정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong class="k k-A">A</strong></td>
+<td>직장형</td>
+<td>병원·의원·회사·기업·시청·구청·은행·신문사·방송사·법원·연구원(기관)·요양원</td>
+<td>이익·2차</td>
+<td><span class="ok">O</span></td>
+<td><span class="bad">X</span></td>
+<td><span class="bad">X</span></td>
+<td>비공식적·2차적</td>
+<td><code>…원</code> 끝말 ≠ 학교. '연구원'은 기관/지위 동음. 부서(영업부·내과) = 모호(기본 ⁼ 처리). 지원만 한 회사도 전수 모드에선 셈(모호)</td>
+</tr>
+<tr>
+<td><strong class="k k-B">B</strong></td>
+<td>공식 자결</td>
+<td>○○단체(시민·환경·보호·봉사)·노동조합·협회·연맹·정당(관례 B) / 종교 단체=모호</td>
+<td>이익·2차</td>
+<td><span class="ok">O</span></td>
+<td><span class="ok">O</span></td>
+<td><span class="bad">X</span></td>
+<td>비공식적·2차적</td>
+<td>'시청/사내/교사 노동조합' → 접두어 무시, <strong>어미 우선 B</strong>. '친목 단체'는 C</td>
+</tr>
+<tr>
+<td><strong class="k k-C">C</strong></td>
+<td>외부 친목 자결</td>
+<td>지역·동네 동호회·동창회·향우회·온라인 카페·팬클럽·퇴사/졸업 후 동기 모임</td>
+<td>이익 (1차/2차 모호)</td>
+<td>모호(기본 X)</td>
+<td><span class="ok">O</span></td>
+<td><span class="bad">X</span></td>
+<td>비공식적·2차적</td>
+<td>인터넷 카페 = 집단 C, α 아님. 공식 조직 여부로 갈리는 선지 = 의심</td>
+</tr>
+<tr>
+<td><strong class="k k-D">D</strong></td>
+<td>사내 비공식 조직</td>
+<td>원내·교내·사내 동호회, 입사 동기 모임, 부대 안 독서 모임</td>
+<td>이익 (1차/2차 모호)</td>
+<td><span class="bad">X</span></td>
+<td><span class="ok">O</span></td>
+<td><span class="ok">O</span></td>
+<td>비공식적·2차적</td>
+<td>판정 = <strong>"현재 같은 공식 조직 안의 구성원끼리 친밀 관계로 만든 모임인가"</strong>. <code>~내</code> 없어도 D. 학생 동아리 D = 모호</td>
+</tr>
+<tr>
+<td><strong class="k k-E">E</strong></td>
+<td>학교형</td>
+<td>유치원·초중고·대학·단과대·학과·대학원·학원·직업 훈련원 / 연수원=모호</td>
+<td>이익·2차</td>
+<td><span class="ok">O</span></td>
+<td><span class="bad">X</span></td>
+<td><span class="bad">X</span></td>
+<td><strong>공식적</strong>·2차적</td>
+<td>재언급(모교·학교·대학) 1개. 수식어 속 학교(○○고 <strong>동창회</strong>) 0 = 모호·작업 규칙. 소속 아닌 학과(수의학과)도 전수 모드에선 셈(모호)</td>
+</tr>
+<tr>
+<td><strong class="k k-F">F</strong></td>
+<td>가족·친족</td>
+<td>가족·친척 / 마을·촌락=N(공동사회·1차, 나올 때만)</td>
+<td>공동·1차</td>
+<td><span class="bad">X</span></td>
+<td><span class="bad">X</span></td>
+<td><span class="bad">X</span></td>
+<td>비공식적·<strong>1차적</strong></td>
+<td>명사 '가족' 있을 때만. 남편·조카만으로 F 금지</td>
+</tr>
+<tr>
+<td><strong class="k k-P">P</strong></td>
+<td>또래</td>
+<td>또래 집단·놀이 집단·친구들</td>
+<td>1차(확정) / 공동=모호</td>
+<td><span class="bad">X</span></td>
+<td><span class="bad">X</span></td>
+<td><span class="bad">X</span></td>
+<td>비공식적·<strong>1차적</strong></td>
+<td>'청소년들·노년층' = 사회적 범주 ∅</td>
+</tr>
+<tr>
+<td><strong class="k k-M">α</strong></td>
+<td>매체</td>
+<td>TV·신문·잡지·서적·영화·라디오·인터넷·유튜브·SNS</td>
+<td>집단 X</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>비공식적·2차적</td>
+<td><strong>이용 서술</strong>(본다·듣는다·관람·찾아본다) 있을 때만. 수식어 속 매체(영화 감상 카페·신문사) X. 낱개 계수</td>
+</tr>
+<tr>
+<td><strong>∅</strong></td>
+<td>안 셈</td>
+<td>사회적 범주·군중(관객·승객)·사건·활동·사물·존재 부정('배구부가 없어')·암시 개체</td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>1초 판정 — 반드시 이 순서</strong> (끝말·키워드 규칙 대신 이것만):
+1. 어미가 조합·단체·협회·연맹·정당 → <strong class="k k-B">B</strong>
+2. 현재 같은 공식 조직 안의 구성원끼리 만든 친목 모임 → <strong class="k k-D">D</strong> (퇴사·졸업 후 동기 모임은 C)
+3. 지역·온라인·불특정 사람들의 모임 → <strong class="k k-C">C</strong>
+4. 나머지 공식 조직: 설립 목적이 교육·훈련(사회화)이면 <strong class="k k-E">E</strong>, 아니면 <strong class="k k-A">A</strong>
+5. 명사 '가족·친척' → <strong class="k k-F">F</strong> · 또래·친구들 → <strong class="k k-P">P</strong> · 매체 + 이용 서술 → <strong class="k k-M">α</strong>
+6. 두 역할 기대가 겹치나 → ⚡ (§5.2)</p>
+<p><strong>출제 X 영역</strong>: 자결∩공식적 기관(아래 자결 칸) · 공동사회∩공식조직 · 비공식조직∩공식조직(정의상 ∅). 여기 걸린 선지 = 무조건 X.</p>
+<p><strong>모호 칸</strong> (선지가 여기서 갈리면 그 선지 의심 → §6으로 흡수): C의 공식성(기본 X) · 종교 단체 · 군대·교도소(공식 조직·재사회화·비자발적, 공식적/비공식적 기관 여부 교과서별) · 연수원(회사와 별개?) · 학생 동아리 D · 부서 · 마을(1차적 기관?) · 1차/2차 집단에서 C·D 위치 · 또래=공동사회. 전체 목록 §10.2.</p>
+<hr />
+</section>
+<section class="mod"><h2 id="3">3. 선지 공식표</h2>
+<p><strong>범주 = 코드 합</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>범주</th>
+<th>코드</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>사회 집단</td>
+<td>A+B+C+D+E+F+P</td>
+</tr>
+<tr>
+<td>이익 사회</td>
+<td>A+B+C+D+E</td>
+</tr>
+<tr>
+<td>공동 사회</td>
+<td>F (+N) [P 모호]</td>
+</tr>
+<tr>
+<td>공식 조직</td>
+<td>A+B+E</td>
+</tr>
+<tr>
+<td>자발적 결사체</td>
+<td>B+C+D</td>
+</tr>
+<tr>
+<td>비공식 조직</td>
+<td>D</td>
+</tr>
+<tr>
+<td>공식적 사회화 기관</td>
+<td>E</td>
+</tr>
+<tr>
+<td>비공식적 사회화 기관</td>
+<td>A+B+C+D+F+P+α = <strong>전체 − E</strong></td>
+</tr>
+<tr>
+<td>1차 집단</td>
+<td>F+P (C·D 모호)</td>
+</tr>
+<tr>
+<td>2차 집단</td>
+<td>A+B+E (C·D 모호)</td>
+</tr>
+<tr>
+<td>1차적 사회화 기관</td>
+<td>F+P</td>
+</tr>
+<tr>
+<td>2차적 사회화 기관</td>
+<td>A+B+C+D+E+α</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>차식 = 공통 문자 소거</strong> (소거된 칸은 잘못 세도 결과 불변 → 검산 범위 축소)</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>선지 형태</th>
+<th>소거 후</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>이익 − 자결</td>
+<td>A+E</td>
+</tr>
+<tr>
+<td>이익 − 공식조직</td>
+<td>C+D</td>
+</tr>
+<tr>
+<td>이익 − 비공식조직</td>
+<td>A+B+C+E</td>
+</tr>
+<tr>
+<td>공식조직 − 자결</td>
+<td>A+E−C−D</td>
+</tr>
+<tr>
+<td>자결 − 비공식조직</td>
+<td>B+C</td>
+</tr>
+<tr>
+<td>공식조직 − 공식적기관</td>
+<td>A+B</td>
+</tr>
+<tr>
+<td>비공식적기관 − 공식조직</td>
+<td>C+D+F+P+α−E</td>
+</tr>
+<tr>
+<td>비공식적기관 − 공식적기관</td>
+<td>A+B+C+D+F+P+α−E</td>
+</tr>
+<tr>
+<td>비공식적기관 − 자결</td>
+<td>A+F+P+α</td>
+</tr>
+<tr>
+<td>공식적기관 vs 비공식조직</td>
+<td>E vs D</td>
+</tr>
+<tr>
+<td>공동 vs 공식조직</td>
+<td>F vs A+B+E</td>
+</tr>
+<tr>
+<td>사회집단 − 이익</td>
+<td>F+P</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>포함 관계</strong>
+- D ⊂ B+C+D ⊂ A+B+C+D+E (비공식 조직 ⊂ 자결 ⊂ 이익)
+- E ⊂ A+B+E ⊂ A+B+C+D+E (공식적 기관 ⊂ 공식 조직 ⊂ 이익)
+- B = 공식조직 ∩ 자결
+- D∩공식조직 = ∅ · E∩자결 = ∅ · (F+P)∩이익 = ∅ · α∩집단 = ∅
+- 항등식: <strong>이익 = 공식조직 + 자결 − B</strong> · <strong>비공식적 기관 = 전체 − E</strong>
+- 단조: D ≤ 자결 ≤ 이익 · E ≤ 공식조직 ≤ 이익 → 위반 선지 즉시 X</p>
+<hr />
+</section>
+<section class="mod"><h2 id="4">4. 개체 추출 규칙</h2>
+<h3 id="41">4.1 세는 것 (전수 모드)</h3>
+<ol>
+<li>집단·기관을 지칭하는 <strong>명사구 전체에 코드 1개</strong>. 개체 구분은 고유 표지(○○·△△·◇◇) 단위.</li>
+<li>소속·시제 무관: 진학 목표 학과·지원한 회사·졸업한 학교·탈퇴한 단체도 '적혀 있으면' 셈. <code>[모호 — 9번 수의학과 역산 관례. 인물 모드에선 즉시 OFF]</code></li>
+<li>학교형 중첩: ○○고등학교 / 사범대학 / 수의학과 = 각 1(명칭·기관 다름). '□□대학교 △△학과' 한 덩어리 = 1 <code>[모호]</code>.</li>
+<li>매체: 이용 서술 있는 매체 명사 낱개(서적·영화·TV·인터넷 각 1).</li>
+<li>가족·또래·마을: 명사가 적혀 있을 때만.</li>
+</ol>
+<h3 id="42">4.2 안 세는 것</h3>
+<ol>
+<li><strong>암시 개체</strong>: 남편→가족, 진학→대학생, 재직→교사, 조카→이모. '적혀 있는' = 명사 존재 기준.</li>
+<li>사건·활동·사물·동물: 시합·약속·관람·입양·유기묘·입시 정보·강연.</li>
+<li><strong>수식어 속 명사</strong> <code>[모호 — 작업 규칙, §10.2-14]</code>: ○○고등학교 <strong>동창회</strong>(C 1, E 0) · 영화 감상 <strong>카페</strong>(C, α 0) · <strong>신문</strong>사(A, α 0) · 시청 공무원 <strong>노동조합</strong>(B; A는 '시청'이 따로 적혔을 때만).</li>
+<li><strong>재언급</strong>: 원내=병원, 교내=고등학교, 그 단체·노조·모교·학교·대학·직장·이 동아리 → <code>⁼</code>, 0개. 기준 = 지시 대상, 명칭 아님. 표지 다르면(△△고 vs ◇◇고) 별개.</li>
+<li>부서·시설: 내과·총무과·인사과 = 모호(기본 ⁼ 처리). 연수원 모호.</li>
+<li>사회적 범주·군중: 청소년들·노년층·수험생들·관객·승객.</li>
+<li>존재 부정: '배구부가 없어' ∅. '가입하려 했으나 못함' → 개체는 적혀 있으니 전수 모드 셈, 인물 모드 ×.</li>
+</ol>
+<h3 id="43">4.3 모드 전환</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>발문·선지 문언</th>
+<th>모드</th>
+<th>도구</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>자료에 적혀 있는 / 제시된 / 나타난</td>
+<td>전수</td>
+<td>집계 한 줄</td>
+</tr>
+<tr>
+<td>밑줄 친 ㉠~㉧</td>
+<td>밑줄</td>
+<td>㉠~㉧에만 코드. 나머지 명사 손대지 않음</td>
+</tr>
+<tr>
+<td>갑의 / 갑이 + 소속·속한·가입·내집단·외집단·준거·거쳐 온·다니는·근무하는·공통으로 속한</td>
+<td>인물</td>
+<td>인물×집단 행렬</td>
+</tr>
+<tr>
+<td>갑~병의 지위 / 갑이 가진 지위</td>
+<td>인물(지위)</td>
+<td>이름 옆 사람별 열거. 타인 지위 제외</td>
+</tr>
+<tr>
+<td>옳지 않은 것</td>
+<td>검산 반전</td>
+<td>목표 = <strong>X 정확히 1개</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>혼합 선지("적혀 있는 비공식 조직 개수 = 갑의 외집단 중 자결 개수") → 좌변 전수, 우변 행렬. <strong>이때만 선지를 다시 읽는다.</strong></p>
+<h3 id="44">4.4 인물 행렬</h3>
+<p>행 = 인물 / 열 = 코드 붙은 개체.
+칸: <code>○</code> 현재 소속 · <code>◐</code> 과거(졸업·탈퇴·퇴사·그만둠) · <code>△</code> 지원·목표·정보만 · <code>★</code> 준거(동경·기준으로 삼음·본받음·목표) · <code>⊘</code> 소속이나 소속감 없음(겉돈다·이질감) · <code>×</code> 비소속.
+- 내집단 = ○. 외집단 = ×·◐·△ (○이 아닌 집단). <code>⊘</code> = 내집단 X, 외집단도 모호 → 그 선지 의심.
+- 준거 집단 = ★(소속 무관). 소속 집단이 준거인 경우(자부심·긍지·규범을 기준으로) = ○★.
+- 거쳐 온 = ○+◐. 공통으로 속한 = 두 행 모두 ○.
+- 상태 변화 동사(탈퇴·졸업·그만둠·아직 가입 안 함·소속감을 느끼지 못함) 보이는 즉시 기호 수정.
+- 예기 사회화 신호 = △★(진학·입사 목표 집단).</p>
+<h3 id="45">4.5 지위 계수 방식</h3>
+<ul>
+<li>인물 한정("갑~병의 지위"): <strong>사람별 열거만</strong>. 타인 지위 명사(시어머니·학부모·다른 교사) 제외.</li>
+<li>전수("자료에 적혀 있는 지위"): 명사 단위(타인 지위 포함). <code>[모호 — 9번 ②는 어느 독법이든 X라 미검증]</code></li>
+<li>지위 <strong>종류</strong> 단위: 같은 지위 여러 사람 = 1.</li>
+<li>시험장: 사람별로 먼저 세고, 전수 발문이면 타인 지위를 괄호로 병기 <code>ˢ1(3)</code>. 선지가 두 값 사이에서 갈리면 §6.</li>
+</ul>
+<hr />
+</section>
+<section class="mod"><h2 id="5-1">5. 지위·역할 갈등 1초 규칙</h2>
+<h3 id="51-a-s">5.1 지위 — <strong>"선천·혈연·연령 = ᵃ귀속 / 직업·혼인·출산·가입 = ˢ성취"</strong></h3>
+<p>1단: 성별·인종·민족·연령(노인·청소년·어린이)·출생 혈연(아들·딸·손자·조카·형·동생·언니·장남·막내) → <strong>ᵃ</strong>
+2단: 직업·직책·학생·회원 + 혼인(남편·아내·며느리·사위·시어머니·장인) + 출산 계열(부모·조부모·학부모) → <strong>ˢ</strong>
+혈연어는 <strong>세대 관례</strong>가 우선: 위 세대(부모·조부모·인척) = ˢ / 같은·아래 세대(형·언니·동생·조카) = ᵃ / 이모·삼촌·고모 = ᵃ(모호).</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>ᵃ 귀속</th>
+<th>ˢ 성취</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>아들·딸·장남·막내·손자·형·동생·언니·조카·남매</td>
+<td>직업: 수의사·교사·기자·공무원·물리 치료사</td>
+</tr>
+<tr>
+<td>성별·연령(노인·청소년·어린이·유아)·인종·민족</td>
+<td>직책: 회장·총무·팀장·반장·주장·위원장·대의원</td>
+</tr>
+<tr>
+<td>이모·삼촌·고모 = 관례 귀속 <code>[모호]</code></td>
+<td>학생·대학생·대학원생·회원·당원·조합원·단원</td>
+</tr>
+<tr>
+<td></td>
+<td>혼인: 남편·아내·며느리·사위</td>
+</tr>
+<tr>
+<td></td>
+<td>부모·조부모·인척: 어머니·아버지·할머니·할아버지(관례)·시어머니·장인·학부모</td>
+</tr>
+</tbody>
+</table></div>
+<p>함정 7
+1. 할아버지·할머니 = <strong>성취</strong> <code>[관례 — EBS 해설 기준, 교과서 명시는 부모까지]</code>
+2. 시어머니·며느리·학부모 = 성취
+3. 노인 = <strong>귀속</strong>(연령. 은퇴로 얻은 게 아님)
+4. 장남·막내 = 귀속(출생 순서)
+5. 학생 = 성취
+6. 수식어 위치 연령어(어린이 합창단·청소년 봉사 단체) = 모호, 기본 안 셈
+7. 동료·친구·후배·선배 = 회피(나오면 모호)</p>
+<h3 id="52-3">5.2 역할 갈등 ⚡ 3조건 (모두 충족 → ⚡✓)</h3>
+<ol>
+<li><strong>두 역할 기대</strong>: 서로 다른 두 지위. <strong>지위 명사 불필요</strong> — 관계 명사에서 복원(딸의 졸업식→어머니, 남편과의 약속→아내, 아들 돌잔치→아버지).</li>
+<li><strong>동시 요구·충돌</strong>: 겹쳐·같은 날·같은 시각·동시에·둘 다 해야.</li>
+<li><strong>심리 서술</strong>: 고민·고심·망설·주저·곤란·난처·갈피·딜레마·어떻게 해야 할지.</li>
+</ol>
+<p>✓ 놓치기 쉬운 O: 해결됨(한쪽 택함·부탁해 넘김·일정 옮김) → 경험은 O. 부탁·지시가 계기여도 부탁 출처 = 지위 A의 역할이고 충돌하는 지위 B가 서술되면 O(부장 요청 vs 아들 돌잔치).
+✗ 미끼: 진로·적성·구매·유학 고민(역할 아님) / 충돌 상대 역할 없는 단일 역할 수락·거절 고민(<strong>9번 병</strong>) / '망설임 없이'(심리 없음) / 회피('겹칠 뻔', '날짜 바뀌어 고민할 일 없어짐') / 남의 갈등을 걱정·상담.
+역할 내 갈등(교사: 엄하게 vs 다독) = 교과서상 O이나 <strong>평가원 출제 관례는 지위 간 충돌뿐 → 기본 ✗</strong>. 선지가 "한 지위 내 상반된 기대"를 명시할 때만 O.
+한 인물에 고민 두 번 → 각각 판정, 인물 판정은 OR.
+표기: <code>⚡갑(아내×회원)✓</code> <code>⚡…정(막내딸×대학원생)</code> <code>✗병(진로·부탁)</code>.</p>
+<hr />
+</section>
+<section class="mod"><h2 id="6">6. 정합성 검산</h2>
+<p>전제: 옳은 것 → O 정확히 1개. 옳지 않은 것 → X 정확히 1개.</p>
+<pre><code>O 개수
+ =1 → 마킹
+ ≥2 → 동시 O 선지의 차식에서 공통 칸 → 그 칸이 ±1 틀림
+      순서 ① 중복(같은 대상 다른 이름: 모교=대학교, 갑의 병원=병원)
+           ② 오분류(…원/…과 끝말 · 조합 접두어 · 수식어 속 명사 · C/D)
+           ③ 누락(문장 끝 재스캔: 지위 구절 속 기관 · 소속 아닌 기관 · 두 번째 학교)
+      공통 칸 없음(층이 다름: 지위식 vs 집단식) → 각 층에서 모호 항목(§10.2)이 걸린 선지를 의심,
+           확정 규칙만으로 X인 쪽을 지운다
+ =0 → ① 오분류 후보 재확인(위 ②)
+      ② ⚡ 재확인(겹쳐·같은 날 구조가 있는데 ✗로 닫았나 · 관계 명사에서 지위 복원했나)
+      ③ 모호 개체 되살리기: α(이용 서술 없이 언급만 된 매체 → 임시 계수) → F(관계 명사만 있는 가족)
+           → 학과·단과대 분리 → B 공식성
+반복 1회. 실패 → 확정 X 지우고 남은 것 마킹 + ★.
+</code></pre>
+<p><strong>선지 숫자 역산</strong>: 오답 선지의 숫자 = 출제자가 예상한 실수의 결과값. 차식에 넣어 "어느 칸이 몇이면 이 숫자가 나오나"를 역산 → 함정 위치. 오답 여러 개가 같은 칸을 가리키면 그 칸이 출제자의 함정(9번: ③④ → E). 단, 함정 방향은 누락·중복·오분류 셋 다 가능 — <strong>유일성은 방향을 알려주지 않는다.</strong></p>
+<p><strong>주의</strong>: 유일성은 오라클이 아니다. 오분류 세계에서도 O가 1개면 침묵한다(드릴 1의 끝말 세계). 분류 규칙이 먼저, 유일성은 타이브레이커.</p>
+<hr />
+</section>
+<section class="mod"><h2 id="7-9-9">7. 9평 9번 완전 풀이</h2>
+<p><strong>[0] 모드</strong>: 발문 '옳은 것' + 선지 '적혀 있는' → 전수. 층: 집단 ON · 지위 ON(②) · ⚡ ON(①).
+선지 옆: <code>① ⚡갑✓병✓을✗?</code> <code>② ˢ−ᵃ=3?</code> <code>③ A+E=3?</code> <code>④ D=E?</code> <code>⑤ CDFPα−E=1?</code></p>
+<p><strong>[1] 코드 찍기</strong></p>
+<blockquote>
+<p>수의사ˢ로 일하고 있는 갑은 병원ᴬ에서 느끼는 긴장감 해소를 위해 테니스를 배웠다. 갑은 테니스 시합 일정과 원내⁼ 동호회ᴰ의 영화ᵅ 관람 일정이 겹쳐 고민하던 중 함께 시합에 참가하기로 한 남편ˢ과의 약속을 우선하기로 하였다. <code>⚡갑(아내×회원)✓</code>
+○○고등학교ᴱ에 재직 중인 을은 같이 근무하는 선생님ˢ과 교내⁼ 테니스 모임ᴰ을 만들어 활동하였다. 을은 테니스 시합에서 알게 된 갑의 소개로 유기 동물 보호 단체ᴮ에 가입하여 유기묘 보호 활동에 참여하였다. 한편, 을의 조카ᵃ인 병은 사범대학ᴱ에 진학했지만 적성에 맞지 않아 진로에 대해 고민하던 중 <code>✗진로</code> 을에게 아픈 유기묘의 입양을 부탁받았다. 병은 을의 부탁에 어떻게 해야 할지 고민하다 <code>✗충돌 역할 없음</code> 결국 유기묘를 입양하였다. 이후 동물 건강 관리에 관한 서적ᵅ을 찾아보며 흥미가 생긴 병은 진로를 바꾸기로 결심하고 수의학과ᴱ 입시 정보를 알아보았다.</p>
+</blockquote>
+<p><strong>[2] 집계</strong>: <code>A1 B1 C0 D2 E3 F0 P0 α2 ‖ ˢ3(수의사·남편·선생님) ᵃ1(조카) ‖ ⚡갑 ✗병</code></p>
+<p><strong>[3] 판정</strong></p>
+<div class="tw"><table style="min-width:600px">
+<thead>
+<tr>
+<th>선지</th>
+<th>차식</th>
+<th>대입</th>
+<th>판정</th>
+<th>이 숫자를 만드는 실수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td>⚡ 갑·병</td>
+<td>갑✓ 병✗</td>
+<td><span class="bad">X</span></td>
+<td>병 '부탁 고민'을 ⚡로</td>
+</tr>
+<tr>
+<td>②</td>
+<td>ˢ−ᵃ=3</td>
+<td>3−1=2</td>
+<td><span class="bad">X</span></td>
+<td>대학생 추가(ˢ4)</td>
+</tr>
+<tr>
+<td>③</td>
+<td>A+E=3</td>
+<td>1+3=4</td>
+<td><span class="bad">X</span></td>
+<td>수의학과 누락(E2)</td>
+</tr>
+<tr>
+<td>④</td>
+<td>D=E</td>
+<td>2 vs 3</td>
+<td><span class="bad">X</span></td>
+<td>수의학과 누락(E2)</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td>C+D+F+P+α−E=1</td>
+<td>0+2+0+0+2−3=1</td>
+<td><strong class="ok">O</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<p>우뢰 원식 <code>CDα−E = 4−3 = 1</code> 동일. 검산: 비공식적 6 = 전체 9 − E3 ✓ / 이익 7 = 공식조직 5 + 자결 3 − B1 ✓.</p>
+<p><strong>[4] 정합성</strong>: O=1 → <strong>⑤</strong> 마킹.</p>
+<h3 id="72">7.2 정답이 갈리는 변수</h3>
+<p><code>x</code> 수의학과 셈 / <code>y</code> 대학생ˢ 셈 / <code>z</code> 가족 셈 / <code>w</code> 영화 α 셈 / <code>u</code> 단체=공식조직 / <code>r</code> 병 부탁 고민=⚡</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>선지</th>
+<th>참 조건</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td>r=1</td>
+</tr>
+<tr>
+<td>②</td>
+<td>y=1 (ˢ4−ᵃ1=3)</td>
+</tr>
+<tr>
+<td>③</td>
+<td>x=0 (A+E=1+2=3)</td>
+</tr>
+<tr>
+<td>④</td>
+<td>x=0 (D2=E2)</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td>u=1: <strong>z+w=x</strong> / u=0: z+w=x−1</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li><strong>x=0 세계 → ③④ 동시 참 → 문항 붕괴.</strong> 어느 세계든 x=1 강제. 이것이 "수의학과는 센다"의 유일한 근거(교과서 근거 아님, 정합성 역산).</li>
+<li><strong>⑤ 정답 세계</strong>: x=1 ∧ y=0 ∧ r=0 ∧ [(u=1 ∧ z+w=1) ∨ (u=0 ∧ z=w=0)]. 관례 u=1 → 영화·가족 중 <strong>정확히 하나</strong>. 이 문서는 w=1(영화, '관람' 이용 서술)·z=0(명사 '가족' 없음)으로 둔다. <strong>w=1은 유일성 역산의 결과이지 교과서·기출 관례 근거가 아님(§10.2-3).</strong> 둘 다 세면 7−5=2, 둘 다 안 세면 5−5=0 → 정답 소멸.</li>
+<li><strong>② 정답 세계</strong>: y=1 ∧ x=1 ∧ r=0 ∧ ⑤ 거짓 [(u=1 ∧ z+w∈{0,2}) ∨ (u=0 ∧ z+w≥1)]. = 평가원이 '사범대학에 진학'에서 대학생을 성취 지위로 뽑고, 영화·가족을 둘 다 안 세는 세계.</li>
+<li>개수형 오답 ②③④ 중 둘(③④)이 E 누락을 공유 → 출제자가 판 함정 = 수의학과. ②의 '3개'는 대학생 함정.</li>
+<li>유일성 제약 하 후보 순위: <strong>⑤ 1순위</strong>(독립 풀이 4건 전원 일치) · ② 2순위. 공식 정답표로 §10 확인.</li>
+</ul>
+<hr />
+</section>
+<section class="mod"><h2 id="8-5-1">8. 드릴 5 (정답 각 1개 · 모호 칸이 정답을 가르지 않도록 설계 · 재검산 완료)</h2>
+<h3 id="1_1">드릴 1 — 끝말·접두어·동기 모임 (전수)</h3>
+<blockquote>
+<p>○○시청에서 근무하는 공무원 갑은 시청 공무원 노동조합의 조합원이며, 입사 동기들과 만든 볼링 모임에서 활동하고, 주말에는 동네 사람들과 만든 요가 모임에 나간다. 갑의 언니 을은 □□대학원을 졸업하고 국립 ◇◇연구원에서 연구원으로 일하고 있다. 을의 남편 정은 △△정형외과 의원의 물리 치료사이다. 을은 연구원의 야간 실험 일정과 아들의 유치원 발표회가 겹쳐 어머니로서 어떻게 해야 할지 고민하다 발표회에 참석하였다. 을의 아들 병은 유치원에서 배운 노래를 텔레비전 프로그램에서 다시 보며 따라 불렀다.</p>
+</blockquote>
+<p>① 갑과 을은 모두 역할 갈등을 경험하였다.
+② 자료에 적혀 있는 성취 지위의 개수는 귀속 지위의 개수보다 3개 많다.
+③ 자료에 적혀 있는 공식적 사회화 기관의 개수는 비공식 조직의 개수보다 3개 많다.
+④ 자료에 적혀 있는 자발적 결사체의 개수는 비공식 조직의 개수보다 1개 많다.
+⑤ 자료에 적혀 있는 비공식적 사회화 기관의 개수는 공식적 사회화 기관의 개수보다 5개 많다.</p>
+<p>코드: 시청ᴬ 공무원ˢ · 시청 공무원 노동조합ᴮ(어미 우선) 조합원ˢ · 입사 동기들과 만든 볼링 모임ᴰ(현재 같은 공식 조직 구성원) · 동네 사람들과 만든 요가 모임ᶜ · 언니ᵃ · □□대학원ᴱ(졸업, 전수 셈) · ◇◇연구원ᴬ 연구원ˢ(지위) · 남편ˢ · △△정형외과 의원ᴬ 물리 치료사ˢ · 연구원⁼ · 아들ᵃ · 유치원ᴱ · 어머니ˢ <code>⚡을(연구원×어머니)✓</code> · 유치원⁼ · 텔레비전 프로그램ᵅ
+집계: <code>A3 B1 C1 D1 E2 F0 P0 α1 ‖ ˢ6 ᵃ2 ‖ ⚡을</code></p>
+<div class="tw"><table style="min-width:600px">
+<thead>
+<tr>
+<th>선지</th>
+<th>차식</th>
+<th>대입</th>
+<th>판정</th>
+<th>숫자를 만드는 실수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td>⚡갑?</td>
+<td>갑 없음</td>
+<td><span class="bad">X</span></td>
+<td>—</td>
+</tr>
+<tr>
+<td>②</td>
+<td>ˢ−ᵃ=3</td>
+<td>6−2=4</td>
+<td><span class="bad">X</span></td>
+<td>ˢ 하나 놓침(조합원·연구원 지위)</td>
+</tr>
+<tr>
+<td>③</td>
+<td>E−D=3</td>
+<td>2−1=1</td>
+<td><span class="bad">X</span></td>
+<td>의원·연구원→E(E4: 4−1=3)</td>
+</tr>
+<tr>
+<td>④</td>
+<td>B+C=1</td>
+<td>1+1=2</td>
+<td><span class="bad">X</span></td>
+<td>조합→D(B0: 0+1=1)</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td>(A+B+C+D+α)−E=5</td>
+<td>7−2=5</td>
+<td><strong class="ok">O</strong></td>
+<td>—</td>
+</tr>
+</tbody>
+</table></div>
+<p>정답 <strong>⑤</strong>. 재검산: 이익 8 = 공식조직 6 + 자결 3 − B1 ✓ · 비공식적 7 = 전체 9 − E2 ✓. C의 공식성은 어느 선지에도 영향 없음.
+함정 세계: <strong>끝말 세계(E4)</strong> → ③ O, ⑤ 5−4=1 X → O 1개(③) → 유일성 침묵 → 오답. 분류는 '설립 목적'으로. / <strong>조합→D 세계</strong> → ④ O, ⑤ O → O 2개 → 공통 문자 B·C → 어미 규칙 재확인 → 회복.</p>
+<h3 id="2_1">드릴 2 — 밑줄 + 옳지 않은 것</h3>
+<blockquote>
+<p>밑줄 친 ㉠~㉧에 대한 설명으로 옳지 않은 것은?
+㉠ 회사원 갑은 ㉡ 사내 축구 동호회 회원이며 주말에는 ㉢ 동네 독서 모임에 나간다. 갑의 ㉣ 아내 을은 ○○고등학교 교사로, 교내 합창단과 ㉤ 전국 교사 노동조합에 가입해 있다. 을은 노동조합 집회 날짜와 ㉥ 딸 병의 입학식이 겹쳐 고민하다 입학식에 참석하였다. 병은 △△중학교에 입학한 뒤 ㉦ 텔레비전에서 환경 다큐멘터리를 보고 ㉧ 시민 단체인 □□환경 연대의 청소년 회원이 되었다.</p>
+</blockquote>
+<p>① ㉠과 ㉣은 성취 지위이고 ㉥은 귀속 지위이다.
+② ㉡, ㉢, ㉤, ㉧은 모두 이익 사회이면서 자발적 결사체이다.
+③ ㉠~㉧ 중 공식적 사회화 기관은 없다.
+④ ㉠~㉧ 중 비공식적 사회화 기관은 4개이다.
+⑤ 을은 역할 갈등을 경험하였다.</p>
+<p>발문 □ <code>옳지 않은</code> → 여백 <strong>X1</strong>. 밑줄만 코드: ㉠ˢ ㉡ᴰ ㉢ᶜ ㉣ˢ ㉤ᴮ ㉥ᵃ ㉦ᵅ ㉧ᴮ. 비밑줄(고등학교·합창단·중학교) 손 안 댐. <code>⚡을(조합원×어머니←딸)✓</code></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>선지</th>
+<th>판정</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td><span class="ok">O</span></td>
+<td>ˢˢ / ᵃ</td>
+</tr>
+<tr>
+<td>②</td>
+<td><span class="ok">O</span></td>
+<td>D·C·B·B 모두 이익∧자결</td>
+</tr>
+<tr>
+<td>③</td>
+<td><span class="ok">O</span></td>
+<td>밑줄 중 E 없음</td>
+</tr>
+<tr>
+<td>④</td>
+<td><strong class="bad">X</strong></td>
+<td>㉡㉢㉤㉦㉧ = 5 ≠ 4</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td><span class="ok">O</span></td>
+<td>3조건 충족, 해결해도 경험 O</td>
+</tr>
+</tbody>
+</table></div>
+<p>정답 <strong>④</strong>. X=1 ✓.
+함정: ③에서 밑줄 밖 학교 세면 X 2개 / ④ '4' ← ㉢ 또는 ㉦ 하나 빠뜨림 / ⑤에서 '어머니' 명사 없다고 ✗ 처리하면 X 2개.</p>
+<h3 id="3_1">드릴 3 — 인물 행렬 (내·외·준거·탈퇴)</h3>
+<blockquote>
+<p>○○ 회사에 함께 다니는 갑과 을 중 갑은 사내 마라톤 동호회에서 활동하고, 을은 지난해까지 이 동호회에서 활동했으나 탈퇴하고 지역 사진 동호회에 가입하였다. 갑은 전문 사진작가들로 구성된 △△ 사진 협회 회원들의 작품을 동경하여 그들의 기준에 맞추어 사진을 찍지만, 아직 협회에 가입하지는 않았다. 을은 △△ 사진 협회의 회원이다. 갑의 아들 병은 ◇◇ 고등학교 학생으로 교내 사진 동아리에서 활동한다.</p>
+</blockquote>
+<p>① 갑의 준거 집단은 갑의 내집단이다.
+② 갑과 을이 공통으로 속한 공식 조직은 2개이다.
+③ 을의 내집단 중 자발적 결사체의 개수는 갑의 내집단 중 자발적 결사체의 개수보다 1개 많다.
+④ 병의 내집단 중 공식 조직은 없다.
+⑤ 자료에 적혀 있는 비공식 조직의 개수는 갑의 외집단 중 자발적 결사체의 개수와 같다.</p>
+<div class="tw"><table style="min-width:840px">
+<thead>
+<tr>
+<th></th>
+<th>회사ᴬ</th>
+<th>사내 마라톤ᴰ</th>
+<th>지역 사진ᶜ</th>
+<th>사진 협회ᴮ</th>
+<th>고교ᴱ</th>
+<th>교내 사진ᴰ(학생 동아리, D/C 모호)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>갑</td>
+<td>○</td>
+<td>○</td>
+<td>×</td>
+<td>★×</td>
+<td>×</td>
+<td>×</td>
+</tr>
+<tr>
+<td>을</td>
+<td>○</td>
+<td>◐</td>
+<td>○</td>
+<td>○</td>
+<td>×</td>
+<td>×</td>
+</tr>
+<tr>
+<td>병</td>
+<td>×</td>
+<td>×</td>
+<td>×</td>
+<td>×</td>
+<td>○</td>
+<td>○</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>선지</th>
+<th>판정</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td><span class="bad">X</span></td>
+<td>준거 = 협회(★) but × → 외집단</td>
+</tr>
+<tr>
+<td>②</td>
+<td><span class="bad">X</span></td>
+<td>공통 ○∧공식조직 = 회사 1</td>
+</tr>
+<tr>
+<td>③</td>
+<td><strong class="ok">O</strong></td>
+<td>을 ○∧자결 = C·B = 2 / 갑 = D = 1</td>
+</tr>
+<tr>
+<td>④</td>
+<td><span class="bad">X</span></td>
+<td>고교 E = 공식 조직</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td><span class="bad">X</span></td>
+<td>좌 전수 D=2(교내 사진을 C로 봐도 1) / 우 갑 ○아닌 자결 = C·B·교내 = 3 → 어느 쪽이든 ≠</td>
+</tr>
+</tbody>
+</table></div>
+<p>정답 <strong>③</strong>. O=1 ✓. 교내 사진 동아리의 D/C 모호는 어느 선지도 가르지 않음.
+함정: 을 탈퇴 놓침(◐→○) → ③ 3−1=2 → O 0개 / 협회를 갑 ○로 → ② 2 O, ⑤ 2=2 O.</p>
+<h3 id="4-4">드릴 4 — 역할 갈등 4연타 + 인물 한정 지위</h3>
+<blockquote>
+<p>교사 갑은 자신이 지도하는 반 학생들의 수학여행 인솔 일정과 남편으로서 함께해야 할 아내의 수술 날짜가 겹쳐 고민하다가 인솔을 다른 교사에게 부탁하였다. 회사원 을은 어머니로서 참석해야 할 딸의 졸업식과 회사의 해외 출장이 겹쳐 고민하였고, 결국 출장을 택하였다. 대학생 병은 전공을 살려 취업할지 대학원에 진학할지 고민하다가 진학을 결정하였다. 대학원생 정은 막내딸로서 아버지의 병간호를 맡아야 하는 상황과 논문 마감 일정이 겹쳐 고민 중이다.</p>
+</blockquote>
+<p>① 갑~정 중 역할 갈등을 경험한 사람의 수는 갑~정이 가진 성취 지위 종류의 개수보다 3개 적다.
+② 갑과 을은 모두 역할 갈등을 해결하지 못하였다.
+③ 을은 역할 갈등을 경험하지 않았다.
+④ 갑과 병은 모두 역할 갈등을 경험하였다.
+⑤ 정의 역할 갈등은 서로 다른 두 성취 지위 사이에서 발생하였다.</p>
+<p>'갑~정이 가진' → 인물(지위) 모드. 사람별 열거(타인 지위 학생들·아내·딸·아버지·다른 교사 = 괄호 제외):
+갑: 교사ˢ·남편ˢ <code>⚡(교사×남편)✓해결</code> / 을: 회사원ˢ·어머니ˢ <code>⚡(회사원×어머니)✓해결</code> / 병: 대학생ˢ <code>✗진로</code> / 정: 대학원생ˢ·막내딸ᵃ <code>⚡…(막내딸×대학원생)진행</code>
+집계: <code>ˢ 종류 6 ᵃ1 ‖ ⚡ 3명</code></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>선지</th>
+<th>판정</th>
+<th>근거</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td><strong class="ok">O</strong></td>
+<td>3 = 6−3</td>
+</tr>
+<tr>
+<td>②</td>
+<td><span class="bad">X</span></td>
+<td>둘 다 한쪽 택함 = 해결</td>
+</tr>
+<tr>
+<td>③</td>
+<td><span class="bad">X</span></td>
+<td>을 경험 O</td>
+</tr>
+<tr>
+<td>④</td>
+<td><span class="bad">X</span></td>
+<td>병 ✗</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td><span class="bad">X</span></td>
+<td>막내딸ᵃ × 대학원생ˢ</td>
+</tr>
+</tbody>
+</table></div>
+<p>정답 <strong>①</strong>. O=1 ✓. (①의 '종류 단위·타인 지위 제외'는 이 문서의 작업 규칙 §4.5 — 평가원이 인물 합산 지위 개수를 물은 사례는 드묾.)
+함정: 타인 지위까지 세면 ˢ9 → ① X → O 0개 / 갑을 '부탁해 넘김=미경험'으로 보면 ⚡2 → ① X.</p>
+<h3 id="5-f">드릴 5 — 재언급 중복 + F + 학원 + 위 세대 지위</h3>
+<blockquote>
+<p>△△ 동물 병원을 운영하는 수의사 갑은 ○○ 대학교를 졸업하고 그 대학 동문회의 회장을 맡고 있다. 갑은 병원 직원들과 만든 밴드 모임에서 활동하며, 이 모임 사람들과 공연을 보러 다닌다. 갑의 며느리 을은 갑의 병원에서 근무하다가 학업을 위해 병원을 그만두고 모교인 ○○ 대학교로 돌아가 공부를 이어 가고 있다. 을은 학교 앞 요리 학원에 다니며, 가족에게서 배운 음식 예절을 요리 수업에서도 지킨다. 을의 장남 병은 어머니 을이 유튜브 영상을 보는 것을 따라 하며 영상 속 동물의 이름을 익혔다.</p>
+</blockquote>
+<p>① 자료에 적혀 있는 성취 지위의 개수는 귀속 지위의 개수보다 2개 많다.
+② 자료에 적혀 있는 이익 사회의 개수는 자발적 결사체의 개수보다 3개 많다.
+③ 자료에 적혀 있는 공식적 사회화 기관의 개수는 비공식 조직의 개수보다 2개 많다.
+④ 자료에 적혀 있는 비공식적 사회화 기관의 개수는 공식적 사회화 기관의 개수보다 2개 많다.
+⑤ 자료에 적혀 있는 공동 사회의 개수와 자발적 결사체의 개수는 같다.</p>
+<p>코드: 동물 병원ᴬ 수의사ˢ · ○○ 대학교ᴱ · 그 대학⁼ 동문회ᶜ 회장ˢ · 병원⁼ 직원들과 만든 밴드 모임ᴰ · 이 모임⁼ · 며느리ˢ · 갑의 병원⁼ · 병원⁼ · 모교⁼ ○○ 대학교⁼ · 학교⁼ 앞 요리 학원ᴱ · 가족ᶠ(사회화 서술 '배운') · 장남ᵃ · 어머니ˢ · 유튜브 영상ᵅ · 영상⁼
+집계: <code>A1 B0 C1 D1 E2 F1 P0 α1 ‖ ˢ4 ᵃ1 ‖ ⚡없음</code></p>
+<div class="tw"><table style="min-width:600px">
+<thead>
+<tr>
+<th>선지</th>
+<th>차식</th>
+<th>대입</th>
+<th>판정</th>
+<th>숫자를 만드는 실수</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>①</td>
+<td>ˢ−ᵃ=2</td>
+<td>4−1=3</td>
+<td><span class="bad">X</span></td>
+<td>회장 놓침(ˢ3)</td>
+</tr>
+<tr>
+<td>②</td>
+<td>A+E=3</td>
+<td>1+2=3</td>
+<td><strong class="ok">O</strong></td>
+<td>—</td>
+</tr>
+<tr>
+<td>③</td>
+<td>E−D=2</td>
+<td>2−1=1</td>
+<td><span class="bad">X</span></td>
+<td>모교·학교 이중 계수(E3)</td>
+</tr>
+<tr>
+<td>④</td>
+<td>(A+B+C+D+F+P+α)−E=2</td>
+<td>5−2=3</td>
+<td><span class="bad">X</span></td>
+<td>가족 누락(4−2) 또는 E3(5−3)</td>
+</tr>
+<tr>
+<td>⑤</td>
+<td>F=B+C+D</td>
+<td>1 vs 2</td>
+<td><span class="bad">X</span></td>
+<td>동문회·모임 하나 누락</td>
+</tr>
+</tbody>
+</table></div>
+<p>정답 <strong>②</strong>. 재검산: 이익 5 = 공식조직 3 + 자결 2 − B0 ✓ · 비공식적 5 = 전체 7 − E2 ✓. 동문회(C)의 공식성·학원=E·가족=F 어느 것도 모호 칸에 걸리지 않음.
+E3 세계: ② 4 X, ③ O, ④ O → O 2개 → 공통 칸 E → <strong>중복 먼저</strong> 점검 → 모교=대학교=학교 → E2 → ②. (누락 방향으로 고치면 E4로 표류.)</p>
+<hr />
+</section>
+<section class="mod"><h2 id="9">9. 한 화면 암기 카드</h2>
+<pre class="card"><code>■ 지도  위=비공식적 기관 / 아래=공식적 기관(E)   A직장 B단체·조합 C외부친목 D사내친목 E학교 F가족 P또래 α매체
+■ 합   이익=ABCDE  공식조직=ABE  자결=BCD  비공식조직=D  공식적기관=E  비공식적기관=ABCDFPα=전체−E  공동=F(P모호)
+■ 차   이익−자결=A+E  이익−공식조직=C+D  비공식적−공식조직=CDFPα−E  자결−비공식조직=B+C  E vs D
+■ 검산 이익=공식조직+자결−B  ·  비공식적=전체−E  ·  D≤자결≤이익  ·  E≤공식조직≤이익
+■ 1초  ①어미 조합·단체·협회·정당→B ②현재 같은 조직 구성원 친목→D ③지역·온라인→C ④나머지: 사회화 목적→E 아니면 A
+■ 셈   명사구 전체에 코드 1개 · 수식어 X · 재언급⁼ 0 · 암시 X · 사건·사물·범주·군중 ∅ · 매체는 이용 서술 있을 때만
+■ 모드 적혀 있는=전수(집계) / ㉠~㉧=밑줄만 / 갑의·소속·내집단·준거=행렬(○◐△★⊘×) / 옳지 않은=X1
+■ 지위 선천·혈연·연령=ᵃ / 직업·혼인·출산·가입=ˢ  ·  위 세대(부모·조부모·인척)=ˢ 같은·아래 세대=ᵃ  ·  종류 단위 1
+■ ⚡   두 지위의 역할 기대(명사 불필요, 관계에서 복원) + 겹침 + 심리 서술  ·  해결해도 O  ·  진로·단일 역할·망설임 없이·회피=✗
+■ 정합 O=1 마킹 / O≥2 공통 칸 ±1: 중복→오분류→누락 / O=0 오분류→⚡→되살리기(언급만 된 α→F→학과→B) / 1회만, 실패 ★
+■ 9번  A1 B1 D2 E3 α2 ‖ ˢ3 ᵃ1 ‖ ⚡갑 → ⑤(CDα−E=1)  ·  ③④ 공통 함정=수의학과 누락  ·  ② 함정=대학생
+</code></pre>
+<p><strong>안키 카드 후보</strong> — 규격 §4 트리거(실패 코드 개념·인출·기준혼동 / 예제 종결)가 발생한 항목만 투입. 표는 규격 §10.2 형식. 뒷면 ≤2줄.</p>
+<div class="tw"><table style="min-width:960px">
+<thead>
+<tr>
+<th>ID</th>
+<th>L</th>
+<th>유형</th>
+<th>카드타입</th>
+<th>Front</th>
+<th>Back</th>
+<th>Tags</th>
+<th>출처</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>001</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>이익 사회를 코드로 쓰면?</td>
+<td>A+B+C+D+E / cf. 공동 사회 = F(P 모호)</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §3</td>
+</tr>
+<tr>
+<td>002</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>공식 조직을 코드로 쓰면?</td>
+<td>A+B+E / cf. 자결 = B+C+D, 겹침 = B</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §3</td>
+</tr>
+<tr>
+<td>003</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>비공식적 사회화 기관을 코드로 쓰면?</td>
+<td>A+B+C+D+F+P+α = 전체 − E</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §3</td>
+</tr>
+<tr>
+<td>004</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>'이익 사회 − 자발적 결사체' 소거 결과는?</td>
+<td>A+E</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §3</td>
+</tr>
+<tr>
+<td>005</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>'비공식적 사회화 기관 − 공식 조직' 소거 결과는?</td>
+<td>C+D+F+P+α − E</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §3</td>
+</tr>
+<tr>
+<td>006</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>이익 사회를 공식 조직·자결로 검산하는 항등식은?</td>
+<td>공식조직 + 자결 − B</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §3</td>
+</tr>
+<tr>
+<td>007</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>'…원'으로 끝나는 기관 중 공식적 사회화 기관(E)은?</td>
+<td>학원·대학원·유치원·훈련원 / cf. 병원·의원·법원·연구원·요양원 = A</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>METHOD v1 §2</td>
+</tr>
+<tr>
+<td>008</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>'시청 공무원 노동조합' 코드는?</td>
+<td>B / cf. 접두어(시청·사내)보다 어미(조합·단체·협회) 우선</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>METHOD v1 §2</td>
+</tr>
+<tr>
+<td>009</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>'입사 동기들과 만든 등산 모임' 코드는?</td>
+<td>D / cf. 기준 = 현재 같은 공식 조직 구성원의 친목 모임, '~내' 키워드 아님</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>METHOD v1 §2</td>
+</tr>
+<tr>
+<td>010</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>온라인 카페·인터넷 동호회 코드는?</td>
+<td>C(집단) / cf. 단독 '인터넷·유튜브'만 α</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>METHOD v1 §2</td>
+</tr>
+<tr>
+<td>011</td>
+<td>L2</td>
+<td>이해</td>
+<td>Basic</td>
+<td>매체 명사를 α로 세는 조건은?</td>
+<td>이용 서술(본다·듣는다·관람·찾아본다) / cf. 수식어 속 매체(영화 감상 카페·신문사) X</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §4</td>
+</tr>
+<tr>
+<td>012</td>
+<td>L5</td>
+<td>적용</td>
+<td>Cloze</td>
+<td>역할 갈등 ⚡ 3조건은?</td>
+<td>{{c1::두 지위의 역할 기대(지위 명사 불필요)}} → {{c2::동시 요구·충돌}} → {{c3::심리 서술}}<br>예) 9평 9번 갑: 남편과의 약속(아내) vs 동호회 영화 관람(회원) 겹침+고민 → ⚡✓</td>
+<td><code>사회문화::개인과사회::방법론</code></td>
+<td>METHOD v1 §5 · 9평 9번</td>
+</tr>
+<tr>
+<td>013</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>'부탁에 어떻게 해야 할지 고민'이 역할 갈등이 되는 조건은?</td>
+<td>부탁 출처 지위와 충돌하는 두 번째 지위의 역할이 서술될 때 / cf. 9평 9번 병 = 상대 역할 없음 → ✗</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>9평 9번</td>
+</tr>
+<tr>
+<td>014</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>역할 갈등을 겪고 한쪽을 택해 해결한 경우, '경험' 여부는?</td>
+<td>O / cf. '겹칠 뻔'·'날짜 바뀜' 회피 = X, '망설임 없이' = X</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>METHOD v1 §5</td>
+</tr>
+<tr>
+<td>015</td>
+<td>L2</td>
+<td>이해</td>
+<td>Basic</td>
+<td>귀속/성취를 가르는 1초 규칙은?</td>
+<td>선천·혈연·연령 = 귀속 / 직업·혼인·출산·가입 = 성취</td>
+<td><code>사회문화::개인과사회::지위</code></td>
+<td>METHOD v1 §5</td>
+</tr>
+<tr>
+<td>016</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>할아버지·시어머니·며느리·학부모 지위는?</td>
+<td>성취(위 세대·혼인·출산 관례) / cf. 노인·장남·조카·청소년 = 귀속</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>METHOD v1 §5</td>
+</tr>
+<tr>
+<td>017</td>
+<td>L5</td>
+<td>적용</td>
+<td>Cloze</td>
+<td>개수 문항에서 O가 2개 이상일 때 점검 순서는?</td>
+<td>{{c1::중복(같은 대상 다른 이름)}} → {{c2::오분류(끝말·접두어·수식어·C/D)}} → {{c3::누락(문장 끝 재스캔)}}<br>예) 9평 9번 ③④ 동시 O → 공통 칸 E → 수의학과 회수</td>
+<td><code>사회문화::개인과사회::방법론</code></td>
+<td>METHOD v1 §6 · 9평 9번</td>
+</tr>
+<tr>
+<td>018</td>
+<td>L5</td>
+<td>적용</td>
+<td>Cloze</td>
+<td>개수 문항에서 O가 0개일 때 점검 순서는?</td>
+<td>{{c1::오분류 후보 재확인}} → {{c2::⚡ 트리거 재확인}} → {{c3::모호 개체 되살리기(언급만 된 α→F→학과→B)}}</td>
+<td><code>사회문화::개인과사회::방법론</code></td>
+<td>METHOD v1 §6</td>
+</tr>
+<tr>
+<td>019</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>발문 '적혀 있는' vs 선지 '갑의 소속 집단 중'의 풀이 모드는?</td>
+<td>전수(집계 한 줄) vs 인물(행렬 ○◐△★⊘×) / cf. '옳지 않은' = X 1개 검산</td>
+<td><code>사회문화::개인과사회::방법론</code></td>
+<td>METHOD v1 §4</td>
+</tr>
+<tr>
+<td>020</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>인물 행렬에서 내집단·외집단·준거 집단 기호는?</td>
+<td>내=○ / 외=×·◐·△ / 준거=★(소속 무관) / ⊘=소속감 없음(모호)</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §4</td>
+</tr>
+<tr>
+<td>021</td>
+<td>L1</td>
+<td>사실</td>
+<td>Basic</td>
+<td>재언급 개체(모교·학교·그 단체·원내)의 계수는?</td>
+<td>0 — 지시 대상 단위 / cf. 고유 표지(○○/△△) 다르면 별개</td>
+<td><code>사회문화::개인과사회::개수세기</code></td>
+<td>METHOD v1 §4</td>
+</tr>
+<tr>
+<td>022</td>
+<td>L3</td>
+<td>대비</td>
+<td>Basic</td>
+<td>9평 9번에서 오답 ③④가 공유한 함정은?</td>
+<td>수의학과(E) 누락 → E=2 / cf. ② 함정 = 대학생 추가</td>
+<td><code>사회문화::개인과사회::혼동쌍</code></td>
+<td>9평 9번</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+</section>
+<section class="mod"><h2 id="10">10. 미확정 사항 · 정답표로 확인할 것</h2>
+<p><strong>확인처</strong>: 평가원 <code>cdn.kice.re.kr/09mo-27suneung/index.html</code> · EBSi 풀서비스(2026-09-02 사회·문화) · 호랭이닷컴 467. 세션 내 프록시 차단으로 미열람.</p>
+<h3 id="101-9">10.1 9번 자체</h3>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>확인 항목</th>
+<th>확인 방법</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>정답 ⑤인가 ②인가</td>
+<td>정답표</td>
+</tr>
+<tr>
+<td>2</td>
+<td>해설의 공식 조직 개수(5 = x1·u1 / 4 = u0 또는 x0)</td>
+<td>해설 목록</td>
+</tr>
+<tr>
+<td>3</td>
+<td>해설의 비공식적 사회화 기관 목록에 영화·가족 포함 여부(w·z)</td>
+<td>해설 목록</td>
+</tr>
+<tr>
+<td>4</td>
+<td>해설의 성취 지위 목록에 남편·선생님(타인 지위)·대학생 포함 여부(명사 vs 인물 계수, y)</td>
+<td>해설 ② 문장</td>
+</tr>
+<tr>
+<td>5</td>
+<td>병의 '부탁 고민'을 역할 갈등 X로 본 근거 문구</td>
+<td>해설 ① 문장</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>정답 확인 후 행동</strong></p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>정답</th>
+<th>의미</th>
+<th>문서 수정</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⑤</td>
+<td>x=1·y=0·r=0 확정. 해설에서 영화/가족·u 확인</td>
+<td>§4.1-2·§4.1-4 유지. 가족을 셌으면 α 규칙을 "사회화 서술 필수"로, F 규칙을 "관계 명사만으로도 셈"으로 교체</td>
+</tr>
+<tr>
+<td>②</td>
+<td>y=1: '적혀 있는'이 암시 지위(대학생)까지 포함 → §4.5·§4.2-1 수정. 영화·가족 둘 다 안 셈 → §2 α 규칙 "사회화 기능 서술 필수"로 강화</td>
+<td>§7.2 ② 세계로 확정, 드릴 1·2 α 계수 재점검</td>
+</tr>
+<tr>
+<td>그 외</td>
+<td>방법론 전면 재검토</td>
+<td>해설 원문 전사 후 재분석</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="102">10.2 평가원 관례 미확인(교과서 근거 없음 → 정답 결정에 쓰지 말 것)</h3>
+<ol>
+<li>소속 아닌 기관(수의학과·지원한 회사)의 전수 계수 — 9번 정합성 역산뿐.</li>
+<li>단과대·학과의 별개 E 계수.</li>
+<li>매체 낱개 계수(영화·서적) — 이용 서술 기준은 본 문서의 작업 규칙. 9번 w=1은 유일성 역산 결과.</li>
+<li>C(지역 동호회·동창회·온라인 카페)의 공식 조직 여부.</li>
+<li>동창회·향우회의 비공식 조직 여부.</li>
+<li>종교 단체의 자결 여부(정당은 관례 B로 둠).</li>
+<li>군대·교도소의 공식적/비공식적 사회화 기관 여부.</li>
+<li>연수원의 별개 개체 여부.</li>
+<li>학생 동아리 = D.</li>
+<li>이모·삼촌·고모 = 귀속.</li>
+<li>수식어 위치 연령어(어린이 합창단)의 지위 계수.</li>
+<li>'적혀 있는 지위'의 명사 단위 vs 인물 단위 계수.</li>
+<li>또래 집단의 공동 사회 여부(1차 집단은 확정).</li>
+<li>수식어 속 기관(○○고 동창회의 ○○고)의 전수 계수 — 0은 작업 규칙.</li>
+<li>부서(영업부·내과)의 계수.</li>
+<li>역할 내 갈등(한 지위 내 상반된 기대)의 출제 여부 — 기본 ✗.</li>
+<li>할아버지·할머니 = 성취 — EBS 해설 관례, 교과서 명시 X.</li>
+</ol>
+<p>시험장 대응: 위 17항이 선지의 O/X를 가르면 <strong>그 선지를 의심</strong>하고, 확정 규칙만으로 X인 선지를 먼저 지운 뒤 §6으로 흡수. 삭제한 근거: '2023학년도 전후 정착', '기출 회차 기억' 류 — 확인 안 됨, 문서에서 제외.</p>
+<hr />
+</section>
+<section class="mod"><h2 id="_1">변경 기록</h2>
+<ul>
+<li>v1 초안(종합 에이전트) → 교육과정·논리 비평 2건 반영: 지위 1초 규칙을 '선천·혈연·연령 / 직업·혼인·출산·가입' 2단 + 세대 관례로 교체(치명), 1초 판정 순서를 어미→D→C→E/A로 재배열(중요), 또래=공동사회·수식어 속 기관·부서·역할 내 갈등·할아버지=성취에 모호/관례 꼬리표, 정당은 관례 B, 1차/2차 집단과 1차적/2차적 기관 행 분리, 내집단 ⊘ 기호 추가.</li>
+<li>드릴 1 ④⑤·드릴 5 본문을 모호 칸(C 공식성·학생 동아리·가족 사회화 서술)에 정답이 걸리지 않게 재설계하고 전 드릴 재검산.</li>
+<li>§6 O=0 되살리기 문구·공통 칸 없음 분기·§7.2 확률 수치 삭제(후보 순위로), 목표 시간 120초로 표와 일치.</li>
+<li>실용성: 우뢰 원안 대비 변경 표(§1) 추가, 암기 카드 갱신, 안키 후보는 규격 §4 트리거 조건부로 명시.</li>
+<li>공식 정답은 여전히 미확인(§10). 독립 풀이 4건 전원 ⑤.</li>
+</ul></section>
+<footer>원본: <code>docs/methods/samun-counting-v1.md</code> · 브랜치 claude/counting-problem-strategy-ctybdk · 우뢰의 벤 영역 기호화(A~E·α)를 계승해 확장한 v1.</footer>
+</div>
