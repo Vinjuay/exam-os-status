@@ -53,10 +53,14 @@ def extract(html: str) -> dict:
         "base": _num(r'⑤</span>예제 큐<span class="sum">적체 \d+/(\d+)', html),
         "wait1": _bar("1차 대기", html),
         "wait2": _bar("2차", html),
-        "solved": _bar("해결", html),
         "closed": _bar("종결", html),
         "outside": _num(r"큐 밖 \(미등록·예제없음\)</span><b>(\d+)</b>", html),
         "expired": _num(r"1차 7일 초과 \(큐 만료 대상\)</span><b>(\d+)</b>", html),
+    }
+
+    # 처리됨(해결) 항목을 로그에 기록
+    out["log"] = {
+        "processed": _bar("해결", html),
     }
 
     out["throughput"] = {
