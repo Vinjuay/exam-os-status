@@ -1,0 +1,228 @@
+<title>사문 개수 세기 여백 지도</title>
+<style>
+:root{--bg:#f6f5f1;--mod:#fff;--line:#dcd8cf;--fg:#1c1a17;--mut:#6b665d;--acc:#b4531f;--ink:#2f2b26;
+ --code:#f0ede6;--ok:#1d7a4c;--bad:#b3352c;--map-line:#4a453d;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14140f;--mod:#1c1c16;--line:#33322a;--fg:#ece8de;--mut:#9a958a;--acc:#e8894f;--ink:#d9d4c8;
+ --code:#100f0b;--ok:#5fc48c;--bad:#f0776c;--map-line:#b3ada0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14140f;--mod:#1c1c16;--line:#33322a;--fg:#ece8de;--mut:#9a958a;--acc:#e8894f;--ink:#d9d4c8;
+ --code:#100f0b;--ok:#5fc48c;--bad:#f0776c;--map-line:#b3ada0;color-scheme:dark}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);
+ font:15px/1.7 Pretendard,"Pretendard Variable",system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 56px}
+h1{font-size:23px;margin:2px 0 10px;font-weight:700;letter-spacing:-.01em}
+.motto{font-size:19px;font-weight:700;color:var(--acc);letter-spacing:.06em;margin:0 0 10px;padding:10px 0;border-top:2px solid var(--acc);border-bottom:2px solid var(--acc);text-align:center}
+blockquote{margin:10px 0;padding:9px 13px;background:var(--code);border-left:3px solid var(--acc);border-radius:0 6px 6px 0}
+blockquote p{margin:0}
+blockquote.motto-q{border:0;background:none;padding:0}
+.mod{background:var(--mod);border:1px solid var(--line);border-radius:9px;padding:15px 16px;margin:0 0 11px}
+h2{font-size:15px;font-weight:700;margin:0 0 9px;color:var(--acc);letter-spacing:.02em}
+h2+p{margin-top:0}
+p{margin:8px 0}
+ol,ul{padding-left:19px;margin:7px 0}li{margin:3px 0}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+strong{font-weight:700}
+code{font-family:ui-monospace,Menlo,Consolas,"D2Coding",monospace;font-size:13px;background:var(--code);padding:1px 5px;border-radius:4px}
+pre{background:var(--code);border:1px solid var(--line);border-radius:7px;padding:11px 13px;overflow-x:auto;font-size:13px;line-height:1.7}
+pre code{background:none;padding:0}
+.tw{overflow-x:auto;margin:9px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:340px}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--mut);font-weight:600;letter-spacing:.03em;border-bottom-width:2px}
+td:first-child{white-space:nowrap;color:var(--ink)}
+figure.map{margin:11px 0;padding:6px 0}
+figure.map svg{display:block;width:100%;height:auto}
+figure.map figcaption{color:var(--mut);font-size:12.5px;margin-top:4px;text-align:center}
+.lb{fill:var(--fg);font-size:16px;font-weight:700;font-family:inherit}
+.lb-top{fill:var(--acc);font-size:15px;letter-spacing:.08em}
+.lb-sm{font-size:14px}
+.sub{fill:var(--mut);font-size:12px;font-family:inherit}
+.num{fill:var(--acc);font-size:21px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+details{margin:8px 0;border:1px dashed var(--line);border-radius:7px;padding:0 12px}
+details[open]{padding-bottom:8px;border-style:solid}
+summary{cursor:pointer;padding:9px 0;font-weight:700;font-size:13.5px;color:var(--acc);list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::after{content:" ▾";color:var(--mut)}
+details[open] summary::after{content:" ▴"}
+summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px;border-radius:4px}
+footer{color:var(--mut);font-size:12.5px;margin-top:6px}
+</style>
+<div class="wrap">
+<h1>사문 개수 세기 — 여백 지도</h1>
+<p class="motto">보고 · 그리고 · 번호 · 센다</p>
+<p>시험지 여백에 지도를 <strong>그린다.</strong> 외우지 않는다. 칸 이름도 같이 적으므로 머리에 남길 것은 위 네 박자뿐이다.</p>
+<hr />
+
+<section class="mod"><h2>0 · 보고</h2>
+<p>자료보다 <strong>발문과 선지 다섯 개를 먼저</strong> 읽는다. 지위를 묻는가, 역할 갈등을 묻는가, 사람별 소속을 묻는가. 여기서 정하면 자료는 한 번만 읽는다.</p>
+</section>
+<section class="mod"><h2>1 · 그리고 (펜 세 번, 6초)</h2>
+<figure class="map"><svg viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="여백 지도: 왼쪽 원은 공식 조직, 오른쪽 원은 자발적 결사체, 왼쪽 원 안 가로선 아래가 공식적 사회화 기관, 원 밖은 공동과 매체">
+<circle cx="240" cy="190" r="130" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+<circle cx="400" cy="190" r="130" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+<line x1="125" y1="250" x2="285" y2="250" stroke="var(--map-line)" stroke-width="2.5"/>
+<text x="320" y="24" class="lb lb-top" text-anchor="middle">이익 사회</text>
+<text x="152" y="50" class="lb" text-anchor="middle">공식 조직</text>
+<text x="496" y="50" class="lb" text-anchor="middle">자발적 결사체</text>
+<text x="190" y="309" class="lb lb-sm" text-anchor="middle">공식적 기관</text>
+<text x="630" y="140" class="lb lb-sm" text-anchor="end">공동</text>
+<text x="630" y="158" class="sub" text-anchor="end">가족·또래</text>
+<text x="630" y="214" class="lb lb-sm" text-anchor="end">매체</text>
+<text x="630" y="232" class="sub" text-anchor="end">책·영화·TV</text>
+<text x="466" y="332" class="sub" text-anchor="middle">· = 사내·교내에서 만든 것</text>
+</svg></figure>
+
+<p>동그라미 둘을 겹쳐 그리고, <strong>왼쪽 원 안에만</strong> 짧은 가로선을 긋는다. 오른쪽까지 긋지 않는다. 칸 이름 다섯 개를 같이 적는다.</p>
+</section>
+<section class="mod"><h2>2 · 번호</h2>
+<p>자료를 읽다 <strong>집단·기관 이름</strong>이 나오면 나온 순서대로 번호를 매긴다. 자료 위에 번호를 찍고, 같은 번호를 지도 칸에 적는다. 개체당 손글씨 한 자.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>나온 말</th>
+<th>넣을 칸</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>일하는 곳 — 병원·회사·시청·연구원</td>
+<td>왼쪽 원, 선 <strong>위</strong></td>
+</tr>
+<tr>
+<td>배우는 곳 — 학교·대학·학과·대학원·유치원·학원</td>
+<td>왼쪽 원, 선 <strong>아래</strong></td>
+</tr>
+<tr>
+<td>~단체 · ~노동조합 · ~협회</td>
+<td><strong>겹침</strong></td>
+</tr>
+<tr>
+<td>~모임 · ~동호회 · ~동창회</td>
+<td><strong>오른쪽 원</strong>. 자기 직장·학교 안에서 만든 것이면 번호 앞에 점</td>
+</tr>
+<tr>
+<td>가족 · 또래</td>
+<td>원 밖 <strong>공동</strong></td>
+</tr>
+<tr>
+<td>책 · 영화 · TV · 인터넷</td>
+<td>원 밖 <strong>매체</strong></td>
+</tr>
+</tbody>
+</table></div>
+</section>
+<section class="mod"><h2>3 · 안 넣는 것 셋</h2>
+<ol>
+<li><strong>이름이 안 나온 것</strong> — 남편이라고 가족을 넣지 않는다</li>
+<li><strong>활동·사건</strong> — 시합·관람·발표회·입양</li>
+<li><strong>다시 부른 것</strong> — 원내는 병원, 모교는 그 대학</li>
+</ol>
+<p>매체 이름은 활동처럼 쓰여도(영화 관람) 넣는다. 이름이 붙은 집단이면 위치를 나타내는 말 안에 있어도 넣는다(수의학과 입시 정보 → 수의학과).</p>
+</section>
+<section class="mod"><h2>4 · 센다</h2>
+<p>선지가 묻는 <strong>칸 이름 안의 번호를 센다.</strong> 그게 끝이다. 비공식적 사회화 기관만 뒤집어 센다 — 전체에서 선 아래를 뺀 나머지, 원 밖도 포함.</p>
+</section>
+<section class="mod"><h2>5 · 물을 때만</h2>
+<ul>
+<li><strong>지위</strong> — 지도 아래 <code>성:</code> <code>귀:</code> 두 줄. <strong>명사로 적힌 것만.</strong> 직업·혼인·출산·가입은 성, 선천·혈연·나이는 귀</li>
+<li><strong>역할 갈등</strong> — 두 지위 + 동시 + 고민. 셋 다면 사람 이름 옆에 <code>!</code></li>
+<li><strong>소속</strong> — 지도를 덮는다. 사람 이름 밑에 세로로 적고, 탈퇴·미가입은 사선</li>
+</ul>
+<p>표·그래프·대화형 자료는 적을 이름이 없다. 그리지 않는다.</p>
+<hr />
+</section>
+<section class="mod"><h2>9평 9번</h2>
+<p>번호: 1 병원 · 2 원내 동호회 · 3 영화 · 4 ○○고등학교 · 5 교내 테니스 모임 · 6 유기 동물 보호 단체 · 7 사범대학 · 8 서적 · 9 수의학과</p>
+<figure class="map"><svg viewBox="0 0 680 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="여백 지도: 왼쪽 원은 공식 조직, 오른쪽 원은 자발적 결사체, 왼쪽 원 안 가로선 아래가 공식적 사회화 기관, 원 밖은 공동과 매체">
+<circle cx="240" cy="190" r="130" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+<circle cx="400" cy="190" r="130" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+<line x1="125" y1="250" x2="285" y2="250" stroke="var(--map-line)" stroke-width="2.5"/>
+<text x="320" y="24" class="lb lb-top" text-anchor="middle">이익 사회</text>
+<text x="152" y="50" class="lb" text-anchor="middle">공식 조직</text>
+<text x="496" y="50" class="lb" text-anchor="middle">자발적 결사체</text>
+<text x="190" y="309" class="lb lb-sm" text-anchor="middle">공식적 기관</text>
+<text x="630" y="140" class="lb lb-sm" text-anchor="end">공동</text>
+<text x="630" y="158" class="sub" text-anchor="end">가족·또래</text>
+<text x="630" y="214" class="lb lb-sm" text-anchor="end">매체</text>
+<text x="630" y="232" class="sub" text-anchor="end">책·영화·TV</text>
+<text x="466" y="332" class="sub" text-anchor="middle">· = 사내·교내에서 만든 것</text>
+<text x="166" y="185" class="num" text-anchor="middle">1</text>
+<text x="352" y="160" class="num" text-anchor="middle">6</text>
+<text x="462" y="160" class="num" text-anchor="middle">·2</text>
+<text x="462" y="210" class="num" text-anchor="middle">·5</text>
+<text x="190" y="283" class="num" text-anchor="middle">4  7  9</text>
+<text x="630" y="262" class="num" text-anchor="middle">3  8</text>
+</svg><figcaption>9번을 다 넣은 모습. 이익 7 · 공식 5 · 자결 3 · 비공식 조직 2 · 공식적 기관 3 · 비공식적 기관 6</figcaption></figure>
+
+<div class="tw"><table>
+<thead>
+<tr>
+<th>선지</th>
+<th>세는 곳</th>
+<th>결과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>② 성취 − 귀속 = 3</td>
+<td>성 3(수의사·남편·선생님) 귀 1(조카)</td>
+<td>2 → X</td>
+</tr>
+<tr>
+<td>③ 이익 − 자결 = 3</td>
+<td>7 − 3</td>
+<td>4 → X</td>
+</tr>
+<tr>
+<td>④ 비공식 조직 = 공식적 기관</td>
+<td>점 2개 vs 선 아래 3개</td>
+<td>X</td>
+</tr>
+<tr>
+<td>⑤ 비공식적 기관 − 공식 조직 = 1</td>
+<td>(9−3) − 5</td>
+<td><strong>1 → O</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>①은 갑만 겪었다. 병의 진로 고민과 부탁 고민에는 충돌하는 두 번째 지위가 없다.</p>
+<p>손으로 쓴 것: 번호 9개와 점 2개, 모두 열한 자.</p>
+<blockquote>
+<p>수의학과를 빠뜨리면 ③과 ④가 <strong>동시에</strong> 맞는 답이 된다. 답이 둘이 될 수는 없으므로, 그때는 두 선지가 같이 쓰는 칸(선 아래)에서 빠뜨린 것을 찾는다.</p>
+</blockquote>
+<hr />
+</section>
+<section class="mod"><h2>연습</h2>
+<p><strong>1.</strong> ○○시청에서 근무하는 공무원 갑은 시청 공무원 노동조합의 조합원이며, 입사 동기들과 만든 볼링 모임에서 활동하고, 주말에는 동네 사람들과 만든 요가 모임에 나간다. 갑의 언니 을은 □□대학원을 졸업하고 국립 ◇◇연구원에서 연구원으로 일하고 있다. 을은 연구원의 야간 실험 일정과 아들의 유치원 발표회가 겹쳐 어머니로서 어떻게 해야 할지 고민하다 발표회에 참석하였다. 을의 아들 병은 유치원에서 배운 노래를 텔레비전 프로그램에서 다시 보며 따라 불렀다.</p>
+<p>① 갑과 을은 모두 역할 갈등을 경험하였다.
+② 적혀 있는 성취 지위의 개수는 귀속 지위의 개수보다 3개 많다.
+③ 적혀 있는 이익 사회의 개수는 자발적 결사체의 개수보다 3개 많다.
+④ 적혀 있는 비공식 조직의 개수와 공식적 사회화 기관의 개수는 같다.
+⑤ 적혀 있는 비공식적 사회화 기관의 개수는 공식 조직의 개수보다 1개 많다.</p>
+<details>
+<summary>답</summary>
+<p>번호: 1 시청(선 위) · 2 노동조합(겹침) · 3 볼링 모임(·오른쪽) · 4 요가 모임(오른쪽) · 5 대학원(선 아래) · 6 연구원(선 위) · 7 유치원(선 아래) · 8 텔레비전 프로그램(매체)</p>
+<p>'동네 사람들'은 집단 이름이 아니라 사람들의 출처다. 넣지 않는다. 두 번째 연구원과 두 번째 유치원은 다시 부른 것.</p>
+<p>이익 7 · 공식 5 · 자결 3 · 비공식 조직 1 · 공식적 기관 2 · 비공식적 기관 6.
+① 갑은 겹친 일정이 없다 X · ② 성 4(공무원·조합원·연구원·어머니) 귀 2(언니·아들) → 2 X · ③ 4 X · ④ 1 vs 2 X · ⑤ 6 − 5 = <strong>1 O</strong></p>
+<p>정답 ⑤</p>
+</details>
+<p><strong>2.</strong> ○○ 회사에 함께 다니는 갑과 을 중 갑은 사내 마라톤 동호회에서 활동하고, 을은 지난해까지 이 동호회에서 활동했으나 탈퇴하고 지역 사진 동호회에 가입하였다. 갑은 전문 사진작가들로 구성된 △△ 사진 협회 회원들의 작품을 동경하여 그들의 기준에 맞추어 사진을 찍지만, 아직 협회에 가입하지는 않았다. 을은 △△ 사진 협회의 회원이다.</p>
+<p>① 갑의 준거 집단은 갑의 내집단이다.
+② 을의 내집단 중 자발적 결사체의 개수는 갑보다 1개 많다.
+③ 갑과 을이 공통으로 속한 자발적 결사체가 있다.
+④ 자료에 적혀 있는 비공식 조직은 2개이다.
+⑤ 을이 탈퇴한 집단은 을의 내집단이다.</p>
+<details>
+<summary>답</summary>
+<p>소속을 물으므로 지도를 덮고 세로로 적는다. 탈퇴·미가입은 사선.</p>
+<pre><code>        회사  사내마라톤  지역사진  사진협회
+  갑     ○       ○          ×       ／동경
+  을     ○      ／          ○        ○
+</code></pre>
+<p>① 협회는 미가입 X · ② 을 2(지역사진·협회) 갑 1(마라톤) → <strong>O</strong> · ③ 회사는 자발적 결사체가 아니고 마라톤은 을이 탈퇴 X · ④ 사내 마라톤 하나뿐 X · ⑤ 탈퇴는 외집단 X</p>
+<p>정답 ②</p>
+</details>
+<hr />
+<p>근거와 검증 과정은 <code>samun-counting-v1.md</code>. 시험장에서는 이 한 장만 본다.</p></section>
+</div>
