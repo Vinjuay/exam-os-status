@@ -38,6 +38,8 @@ figure.map figcaption{color:var(--mut);font-size:12.5px;margin-top:4px;text-alig
 .lb-sm{font-size:14px}
 .sub{fill:var(--mut);font-size:12px;font-family:inherit}
 .num{fill:var(--acc);font-size:21px;font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace}
+.who{fill:var(--fg);font-size:14px;font-weight:600;font-family:inherit}
+.cut{text-decoration:line-through;text-decoration-thickness:1.5px}
 details{margin:8px 0;border:1px dashed var(--line);border-radius:7px;padding:0 12px}
 details[open]{padding-bottom:8px;border-style:solid}
 summary{cursor:pointer;padding:9px 0;font-weight:700;font-size:13.5px;color:var(--acc);list-style:none}
@@ -49,12 +51,12 @@ footer{color:var(--mut);font-size:12.5px;margin-top:6px}
 </style>
 <div class="wrap">
 <h1>사문 개수 세기 — 여백 지도</h1>
-<p class="motto">보고 · 그리고 · 번호 · 센다</p>
+<p class="motto">보고 · 그리고 · 적고 · 센다</p>
 <p>시험지 여백에 지도를 <strong>그린다.</strong> 외우지 않는다. 칸 이름도 같이 적으므로 머리에 남길 것은 위 네 박자뿐이다.</p>
 <hr />
 
 <section class="mod"><h2>0 · 보고</h2>
-<p>자료보다 <strong>발문과 선지 다섯 개를 먼저</strong> 읽는다. 지위를 묻는가, 역할 갈등을 묻는가, 사람별 소속을 묻는가. 여기서 정하면 자료는 한 번만 읽는다.</p>
+<p>자료보다 <strong>발문과 선지 다섯 개를 먼저</strong> 읽는다. 지위를 묻는가, 역할 갈등을 묻는가, <strong>사람을 묻는가</strong>. 여기서 정하면 자료는 한 번만 읽는다.</p>
 </section>
 <section class="mod"><h2>1 · 그리고 (펜 네 번, 8초)</h2>
 <figure class="map"><svg viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="여백 지도: 왼쪽 원은 공식 조직, 오른쪽 원은 자발적 결사체, 아래 교점에서 V자로 갈라진 왼쪽 아래 칸은 공식적 사회화 기관, 오른쪽 아래 칸은 비공식 조직, 원 밖은 공동과 매체">
@@ -81,8 +83,58 @@ footer{color:var(--mut);font-size:12.5px;margin-top:6px}
 <p>동그라미 둘을 겹쳐 그린다. 겹침은 세로로 긴 렌즈가 되게. 그다음 <strong>아래 교점에서 양쪽으로 선을 뻗어 V자</strong>를 만든다. 왼쪽 아래가 공식적 기관, 오른쪽 아래가 비공식 조직이다. 칸 이름을 같이 적는다.</p>
 <p>V자는 개념 그대로다. 공식적 기관(학교)은 공식 조직 안에 있고 자발적 결사체와 겹치지 않는다. 비공식 조직은 자발적 결사체 안에 있고 공식 조직과 겹치지 않는다. 그래서 두 칸이 교점에서 갈라진다.</p>
 </section>
-<section class="mod"><h2>2 · 번호</h2>
-<p>자료를 읽다 <strong>집단·기관 이름</strong>이 나오면 나온 순서대로 번호를 매긴다. 자료 위에 번호를 찍고, 같은 번호를 지도 칸에 적는다. 개체당 손글씨 한 자.</p>
+<section class="mod"><h2>2 · 적고</h2>
+<p><strong>자료에서</strong> — 집단·기관 이름에 동그라미를 치고 그 위에 번호를 쓴다. 나온 순서대로 1, 2, 3.</p>
+<p><strong>지도에서</strong> — 같은 번호를 칸에 쓴다. 칸 안에서는 왼쪽부터 차례로. 개체당 한 자.</p>
+<p><strong>사람을 물으면</strong> — 번호 뒤에 그 사람을 붙인다. 둘 이상이면 이어 쓴다.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>적는 것</th>
+<th>뜻</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>4을병</code></td>
+<td>을과 병이 속해 있다</td>
+</tr>
+<tr>
+<td><code>2을</code> + 사선</td>
+<td>을이 탈퇴·졸업·퇴사했다. 사람 글자 위에 사선을 긋는다</td>
+</tr>
+<tr>
+<td><code>4갑★</code></td>
+<td>갑은 안 속하지만 본받는 대상이다 (준거)</td>
+</tr>
+</tbody>
+</table></div>
+<p>사람을 묻지 않으면 번호만 쓴다. 지도는 하나로 끝이다. 따로 표를 그리지 않는다.</p>
+<figure class="map"><svg viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="여백 지도: 왼쪽 원은 공식 조직, 오른쪽 원은 자발적 결사체, 아래 교점에서 V자로 갈라진 왼쪽 아래 칸은 공식적 사회화 기관, 오른쪽 아래 칸은 비공식 조직, 원 밖은 공동과 매체">
+<circle cx="215" cy="175" r="135" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+<circle cx="440" cy="175" r="135" fill="none" stroke="var(--map-line)" stroke-width="2.5"/>
+<path d="M 119 270 L 328 250 L 536 270" fill="none" stroke="var(--map-line)" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="327" y="20" class="lb lb-top" text-anchor="middle">이익 사회</text>
+<text x="150" y="46" class="lb" text-anchor="middle">공식 조직</text>
+<text x="512" y="46" class="lb" text-anchor="middle">자발적 결사체</text>
+<text x="205" y="298" class="lb lb-sm" text-anchor="middle">공식적 기관</text>
+<text x="452" y="298" class="lb lb-sm" text-anchor="middle">비공식 조직</text>
+<text x="682" y="120" class="lb lb-sm" text-anchor="end">공동</text>
+<text x="682" y="138" class="sub" text-anchor="end">가족·또래</text>
+<text x="682" y="196" class="lb lb-sm" text-anchor="end">매체</text>
+<text x="682" y="214" class="sub" text-anchor="end">책·영화·TV</text>
+<text x="140" y="150" class="num" text-anchor="middle">1</text>
+<text x="163" y="152" class="who" text-anchor="start">갑을</text>
+<text x="327" y="150" class="num" text-anchor="middle">4</text>
+<text x="327" y="176" class="who" text-anchor="middle">갑★을</text>
+<text x="500" y="150" class="num" text-anchor="middle">3</text>
+<text x="523" y="152" class="who" text-anchor="start">을</text>
+<text x="432" y="280" class="num" text-anchor="middle">2</text>
+<text x="455" y="282" class="who" text-anchor="start">갑</text>
+<text x="478" y="282" class="who" text-anchor="start">을</text>
+<line x1="474" y1="286" x2="494" y2="272" stroke="var(--map-line)" stroke-width="2"/>
+</svg><figcaption>연습 2를 사람까지 적은 모습. 을은 2에서 탈퇴했고(사선), 갑은 4를 본받기만 한다(★)</figcaption></figure>
+
 <div class="tw"><table>
 <thead>
 <tr>
@@ -92,7 +144,7 @@ footer{color:var(--mut);font-size:12.5px;margin-top:6px}
 </thead>
 <tbody>
 <tr>
-<td>일하는 곳 — 병원·회사·시청·연구원</td>
+<td>일하는 곳 — 병원·회사·시청·연구원·가게</td>
 <td>왼쪽 원 위</td>
 </tr>
 <tr>
@@ -116,7 +168,7 @@ footer{color:var(--mut);font-size:12.5px;margin-top:6px}
 <td>원 밖 <strong>공동</strong></td>
 </tr>
 <tr>
-<td>책 · 영화 · TV · 인터넷</td>
+<td>책 · 영화 · TV · 인터넷 · 유튜브</td>
 <td>원 밖 <strong>매체</strong></td>
 </tr>
 </tbody>
@@ -132,15 +184,44 @@ footer{color:var(--mut);font-size:12.5px;margin-top:6px}
 </section>
 <section class="mod"><h2>4 · 센다</h2>
 <p>선지가 묻는 <strong>칸 이름 안의 번호를 센다.</strong> 칸 이름이 그대로 선지에 나오므로 찾을 것도 없다.</p>
+<div class="tw"><table>
+<thead>
+<tr>
+<th>선지가 이러면</th>
+<th>이렇게 센다</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>자료에 적혀 있는 · 제시된</td>
+<td>칸 안의 번호를 전부</td>
+</tr>
+<tr>
+<td>갑이 속한 · 갑의 소속 집단 중</td>
+<td>칸 안에서 <strong>갑이 붙은 번호만.</strong> 사선은 뺀다</td>
+</tr>
+<tr>
+<td>갑과 을이 공통으로</td>
+<td>두 글자가 같이 붙은 번호</td>
+</tr>
+<tr>
+<td>갑의 내집단 · 외집단</td>
+<td>갑이 붙은 번호 / 안 붙거나 사선인 번호</td>
+</tr>
+<tr>
+<td>갑의 준거 집단</td>
+<td>★가 붙은 번호. 소속과는 무관하다</td>
+</tr>
+</tbody>
+</table></div>
 <p>비공식적 사회화 기관만 뒤집어 센다 — 전체에서 <strong>왼쪽 아래만</strong> 빼면 된다. 원 밖도 들어간다.</p>
 </section>
 <section class="mod"><h2>5 · 물을 때만</h2>
 <ul>
 <li><strong>지위</strong> — 지도 아래 <code>성:</code> <code>귀:</code> 두 줄. <strong>명사로 적힌 것만.</strong> 직업·혼인·출산·가입은 성, 선천·혈연·나이는 귀</li>
 <li><strong>역할 갈등</strong> — 두 지위 + 동시 + 고민. 셋 다면 사람 이름 옆에 <code>!</code></li>
-<li><strong>소속</strong> — 지도를 덮는다. 사람 이름 밑에 세로로 적고, 탈퇴·미가입은 사선</li>
 </ul>
-<p>표·그래프·대화형 자료는 적을 이름이 없다. 그리지 않는다.</p>
+<p>대화체 자료도 똑같다. 말한 사람이 곧 그 사람이므로 번호 뒤에 붙이면 된다. 도표·표만 그리지 않는다. 적을 이름이 없다.</p>
 <hr />
 </section>
 <section class="mod"><h2>9평 9번</h2>
@@ -198,14 +279,14 @@ footer{color:var(--mut);font-size:12.5px;margin-top:6px}
 </tbody>
 </table></div>
 <p>①은 갑만 겪었다. 병의 진로 고민과 부탁 고민에는 충돌하는 두 번째 지위가 없다.</p>
-<p>손으로 쓴 것: 번호 아홉 자.</p>
+<p>사람을 묻지 않았으므로 번호만 적었다. 손으로 쓴 것은 아홉 자.</p>
 <blockquote>
 <p>수의학과를 빠뜨리면 ③과 ④가 <strong>동시에</strong> 맞는 답이 된다. 답이 둘이 될 수는 없으므로, 그때는 두 선지가 같이 쓰는 칸(왼쪽 아래)에서 빠뜨린 것을 찾는다.</p>
 </blockquote>
 <hr />
 </section>
 <section class="mod"><h2>연습</h2>
-<p><strong>1.</strong> ○○시청에서 근무하는 공무원 갑은 시청 공무원 노동조합의 조합원이며, 입사 동기들과 만든 볼링 모임에서 활동하고, 주말에는 동네 사람들과 만든 요가 모임에 나간다. 갑의 언니 을은 □□대학원을 졸업하고 국립 ◇◇연구원에서 연구원으로 일하고 있다. 을은 연구원의 야간 실험 일정과 아들의 유치원 발표회가 겹쳐 어머니로서 어떻게 해야 할지 고민하다 발표회에 참석하였다. 을의 아들 병은 유치원에서 배운 노래를 텔레비전 프로그램에서 다시 보며 따라 불렀다.</p>
+<p><strong>1 · 전수형.</strong> ○○시청에서 근무하는 공무원 갑은 시청 공무원 노동조합의 조합원이며, 입사 동기들과 만든 볼링 모임에서 활동하고, 주말에는 동네 사람들과 만든 요가 모임에 나간다. 갑의 언니 을은 □□대학원을 졸업하고 국립 ◇◇연구원에서 연구원으로 일하고 있다. 을은 연구원의 야간 실험 일정과 아들의 유치원 발표회가 겹쳐 어머니로서 어떻게 해야 할지 고민하다 발표회에 참석하였다. 을의 아들 병은 유치원에서 배운 노래를 텔레비전 프로그램에서 다시 보며 따라 불렀다.</p>
 <p>① 갑과 을은 모두 역할 갈등을 경험하였다.
 ② 적혀 있는 성취 지위의 개수는 귀속 지위의 개수보다 3개 많다.
 ③ 적혀 있는 이익 사회의 개수는 자발적 결사체의 개수보다 3개 많다.
@@ -213,27 +294,37 @@ footer{color:var(--mut);font-size:12.5px;margin-top:6px}
 ⑤ 적혀 있는 비공식적 사회화 기관의 개수는 공식 조직의 개수보다 1개 많다.</p>
 <details>
 <summary>답</summary>
-<p>번호: 1 시청(왼쪽 위) · 2 노동조합(겹침) · 3 볼링 모임(오른쪽 아래) · 4 요가 모임(오른쪽 위) · 5 대학원(왼쪽 아래) · 6 연구원(왼쪽 위) · 7 유치원(왼쪽 아래) · 8 텔레비전 프로그램(매체)</p>
+<p>1 시청(왼위) · 2 노동조합(겹침) · 3 볼링 모임(오아래) · 4 요가 모임(오위) · 5 대학원(왼아래) · 6 연구원(왼위) · 7 유치원(왼아래) · 8 텔레비전 프로그램(매체)</p>
 <p>'동네 사람들'은 집단 이름이 아니라 사람들의 출처다. 넣지 않는다. 두 번째 연구원과 두 번째 유치원은 다시 부른 것.</p>
 <p>이익 7 · 공식 5 · 자결 3 · 비공식 조직 1 · 공식적 기관 2 · 비공식적 기관 6.
 ① 갑은 겹친 일정이 없다 X · ② 성 4(공무원·조합원·연구원·어머니) 귀 2(언니·아들) → 2 X · ③ 4 X · ④ 1 vs 2 X · ⑤ 6 − 5 = <strong>1 O</strong></p>
 <p>정답 ⑤</p>
 </details>
-<p><strong>2.</strong> ○○ 회사에 함께 다니는 갑과 을 중 갑은 사내 마라톤 동호회에서 활동하고, 을은 지난해까지 이 동호회에서 활동했으나 탈퇴하고 지역 사진 동호회에 가입하였다. 갑은 전문 사진작가들로 구성된 △△ 사진 협회 회원들의 작품을 동경하여 그들의 기준에 맞추어 사진을 찍지만, 아직 협회에 가입하지는 않았다. 을은 △△ 사진 협회의 회원이다.</p>
+<p><strong>2 · 사람형.</strong> ○○ 회사에 함께 다니는 갑과 을 중 갑은 사내 마라톤 동호회에서 활동하고, 을은 지난해까지 이 동호회에서 활동했으나 탈퇴하고 지역 사진 동호회에 가입하였다. 갑은 전문 사진작가들로 구성된 △△ 사진 협회 회원들의 작품을 동경하여 그들의 기준에 맞추어 사진을 찍지만, 아직 협회에 가입하지는 않았다. 을은 △△ 사진 협회의 회원이다.</p>
 <p>① 갑의 준거 집단은 갑의 내집단이다.
-② 을의 내집단 중 자발적 결사체의 개수는 갑보다 1개 많다.
+② 을이 속한 집단 중 자발적 결사체의 개수는 갑보다 1개 많다.
 ③ 갑과 을이 공통으로 속한 자발적 결사체가 있다.
 ④ 자료에 적혀 있는 비공식 조직은 2개이다.
 ⑤ 을이 탈퇴한 집단은 을의 내집단이다.</p>
 <details>
 <summary>답</summary>
-<p>소속을 물으므로 지도를 덮고 세로로 적는다. 탈퇴·미가입은 사선.</p>
-<pre><code>        회사  사내마라톤  지역사진  사진협회
-  갑     ○       ○          ×       ／동경
-  을     ○      ／          ○        ○
-</code></pre>
-<p>① 협회는 미가입 X · ② 을 2(지역사진·협회) 갑 1(마라톤) → <strong>O</strong> · ③ 회사는 자발적 결사체가 아니고 마라톤은 을이 탈퇴 X · ④ 사내 마라톤 하나뿐 X · ⑤ 탈퇴는 외집단 X</p>
+<p>선지에 '갑의·을이 속한'이 있으므로 번호 뒤에 사람을 붙인다.</p>
+<p>1 회사(왼위) <strong>갑을</strong> · 2 사내 마라톤 동호회(오아래) <strong>갑 을</strong>(을에 사선) · 3 지역 사진 동호회(오위) <strong>을</strong> · 4 사진 협회(겹침) <strong>갑★ 을</strong></p>
+<p>① 갑의 ★는 4, 갑은 4에 안 속한다 X · ② 을이 붙은 자결 = 3·4 두 개, 갑은 2 하나 → <strong>O</strong> · ③ 갑이 속한 자결은 2뿐이고 을은 사선 X · ④ 오른쪽 아래는 2 하나 X · ⑤ 사선은 외집단 X</p>
 <p>정답 ②</p>
+</details>
+<p><strong>3 · 대화형.</strong> 갑: 저는 ○○ 회사에 다니면서 사내 독서 모임을 이끌고 있어요. / 을: 저는 △△ 중학교 교사인데, 얼마 전 환경 단체에 가입했어요. / 병: 저는 대학을 졸업하고 아버지의 가게에서 일하고 있어요. 요즘은 유튜브로 요리를 배워요.</p>
+<p>① 갑이 속한 공식 조직은 2개이다.
+② 을이 속한 집단 중 자발적 결사체는 1개이다.
+③ 적혀 있는 비공식적 사회화 기관은 4개이다.
+④ 병이 속한 집단 중 공식적 사회화 기관이 있다.
+⑤ 적혀 있는 자발적 결사체는 3개이다.</p>
+<details>
+<summary>답</summary>
+<p>말한 사람이 곧 그 사람이다. 번호 뒤에 붙이면 된다.</p>
+<p>1 회사(왼위) <strong>갑</strong> · 2 사내 독서 모임(오아래) <strong>갑</strong> · 3 중학교(왼아래) <strong>을</strong> · 4 환경 단체(겹침) <strong>을</strong> · 5 대학(왼아래) <strong>병</strong>(사선) · 6 가게(왼위) <strong>병</strong> · 7 유튜브(매체) <strong>병</strong></p>
+<p>① 갑이 붙은 공식 조직(왼쪽 원)은 1뿐 X · ② 을이 붙은 자결 = 4 하나 <strong>O</strong> · ③ 전체 7 − 왼쪽 아래 2 = 5 X · ④ 병이 붙은 왼쪽 아래는 5인데 졸업해서 사선 X · ⑤ 오른쪽 원 = 2·4 두 개 X</p>
+<p>정답 ②. ④가 사선의 쓸모다. 전수로 세면 대학이 들어가지만 '병이 속한'은 사선을 뺀다.</p>
 </details>
 <hr />
 <p>근거와 검증 과정은 <code>samun-counting-v1.md</code>. 시험장에서는 이 한 장만 본다.</p></section>
