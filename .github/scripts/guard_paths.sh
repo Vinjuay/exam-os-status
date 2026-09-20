@@ -6,12 +6,18 @@ set -euo pipefail
 ALLOWED='^(docs/|\.github/|\.gitignore$)'
 range="${1:-}"
 
+# core.quotepath=false 가 없으면 한글 파일명이 "docs/ANKI_\354\240\225..." 처럼
+# 따옴표로 감싸여 octal 로 escape 되어 나온다. 그러면 ^docs/ 앵커가 여는 따옴표에
+# 막혀, docs/ 안의 파일이 「허용 경로 밖」으로 오판된다(2026-09-20 실측).
+# docs/ 는 이미 한글 파일명을 쓰고 있으므로 가드 쪽을 고친다.
+git_q() { git -c core.quotepath=false "$@"; }
+
 if [ -n "$range" ]; then
-  files=$(git diff --name-only "$range")
+  files=$(git_q diff --name-only "$range")
 elif git rev-parse --verify -q HEAD~1 >/dev/null; then
-  files=$(git diff --name-only HEAD~1 HEAD)
+  files=$(git_q diff --name-only HEAD~1 HEAD)
 else
-  files=$(git ls-files)
+  files=$(git_q ls-files)
 fi
 
 if [ -z "$files" ]; then
