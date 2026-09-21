@@ -48,9 +48,16 @@ def extract(html: str) -> dict:
         "solve1_rate": _num(r"1차 <b>([\d.]+)%", html, float),
     }
 
+    # ⑤ 요약줄은 v1.1 §1-8(E3 「예제 큐 상한 삭제」)대로 09-20 생성기 개정에서
+    # 「적체 a/b」 → 「저장함 N · 이번 주 c 중 d」로 바뀌었다. 「적체」는 cap 시대의
+    # 말이라 v1.1이 폐기했고, v1.3 D18이 그 폐기를 전 항목으로 넓혔다.
+    # 옛 판본을 다시 읽을 수 있어야 시계열이 이어지므로 둘 다 받는다.
     out["queue"] = {
         "backlog": _num(r'⑤</span>예제 큐<span class="sum">적체 (\d+)/\d+', html),
         "base": _num(r'⑤</span>예제 큐<span class="sum">적체 \d+/(\d+)', html),
+        "store": _num(r'⑤</span>예제 큐<span class="sum">저장함 (\d+)', html),
+        "week_cap": _num(r'⑤</span>예제 큐<span class="sum">저장함 \d+ · 이번 주 (\d+) 중 \d+', html),
+        "week_done": _num(r'⑤</span>예제 큐<span class="sum">저장함 \d+ · 이번 주 \d+ 중 (\d+)', html),
         "wait1": _bar("1차 대기", html),
         "wait2": _bar("2차", html),
         "solved": _bar("해결", html),

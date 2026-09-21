@@ -31,7 +31,7 @@ FALLBACK = "dashboard: refresh docs/index.html"
 HEADLINE = [
     ("D-day", "D-{}", lambda m: m.get("dday")),
     ("주간 완료문항", "완료 {}", lambda m: (m.get("throughput") or {}).get("week_items")),
-    ("예제 적체", "적체 {}", lambda m: _fraction(m, "queue", "backlog", "base")),
+    ("예제 큐", "{}", lambda m: _queue_headline(m)),
     ("미코딩", "미코딩 {}", lambda m: (m.get("errorlog") or {}).get("uncoded")),
 ]
 
@@ -49,6 +49,20 @@ TRACKED = [
     ("미판정", lambda m: (m.get("skills") or {}).get("unjudged"), ""),
     ("감쇠", lambda m: (m.get("skills") or {}).get("decayed"), ""),
 ]
+
+
+def _queue_headline(metrics: dict):
+    """⑤ 요약. 옛 판본은 「적체 a/b」, v1.1 §1-8 이후는 「저장함 N·주 d/c」."""
+    q = metrics.get("queue") or {}
+    if q.get("backlog") is not None:
+        b, base = q["backlog"], q.get("base")
+        return f"적체 {b}/{base}" if base is not None else f"적체 {b}"
+    if q.get("store") is not None:
+        cap, done = q.get("week_cap"), q.get("week_done")
+        if cap is not None and done is not None:
+            return f"저장함 {q['store']}·주 {done}/{cap}"
+        return f"저장함 {q['store']}"
+    return None
 
 
 def _fraction(metrics: dict, section: str, num: str, den: str):
