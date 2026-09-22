@@ -51,6 +51,11 @@ def extract(html: str) -> dict:
     out["queue"] = {
         "backlog": _num(r'⑤</span>예제 큐<span class="sum">적체 (\d+)/\d+', html),
         "base": _num(r'⑤</span>예제 큐<span class="sum">적체 \d+/(\d+)', html),
+        # M2 (09-20) 이후 적체 산술 폐지 — 요약이 「저장함 N · 이번 주 M 중 K」로 바뀌었다.
+        # 저장함은 적체와 뜻이 달라 backlog에 넣지 않는다 (적체 초과 게이트 오탐 방지).
+        "store": _num(r'⑤</span>예제 큐<span class="sum">저장함 (\d+)', html),
+        "week": _num(r'<span class="sum">저장함 \d+ · 이번 주 (\d+) 중', html),
+        "week_done": _num(r'<span class="sum">저장함 \d+ · 이번 주 \d+ 중 (\d+)', html),
         "wait1": _bar("1차 대기", html),
         "wait2": _bar("2차", html),
         "solved": _bar("해결", html),
