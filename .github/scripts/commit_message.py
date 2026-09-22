@@ -38,6 +38,7 @@ HEADLINE = [
 # 본문에 「이전 → 현재」로 적을 지표. 변한 것만 나온다.
 TRACKED = [
     ("적체", lambda m: (m.get("queue") or {}).get("backlog"), ""),
+    ("저장함", lambda m: (m.get("queue") or {}).get("store"), ""),
     ("1차 대기", lambda m: (m.get("queue") or {}).get("wait1"), ""),
     ("큐 밖", lambda m: (m.get("queue") or {}).get("outside"), ""),
     ("주간 완료문항", lambda m: (m.get("throughput") or {}).get("week_items"), ""),
@@ -91,7 +92,7 @@ def previous_page(ref: str = "HEAD") -> str | None:
     """직전 커밋에 담긴 페이지. 첫 커밋이면 비교 대상이 없다."""
     try:
         return subprocess.run(["git", "-C", repo_root(), "show", f"{ref}:{PAGE}"],
-                              check=True, capture_output=True, text=True).stdout
+                              check=True, capture_output=True, text=True, encoding="utf-8").stdout
     except subprocess.CalledProcessError:
         return None
 
