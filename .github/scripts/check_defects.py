@@ -35,7 +35,15 @@ def _get(metrics: dict, *path):
 
 # ── OS가 그어 둔 선 ────────────────────────────────────────────────
 def gate_backlog(now, _base):
-    a, b = _get(now, "queue", "backlog"), _get(now, "queue", "base")
+    """적체가 그 주에 처리하기로 한 양을 넘었는가.
+
+    분모는 원래 예제 큐 상한이었으나 설계변경 v1.1 §1-8 E3가 그 상한을
+    폐기했다. 우뢰 09-22 G0 판정 ㉯로 분모는 「그 주 배정 수」가 맡는다 —
+    살아 있는 수이고, 넘었다는 말의 뜻도 분명해진다(이번 주 안에 못 끝낸다).
+    옛 판본이 실어 둔 「적체 N/M」의 M은 그대로 우선한다(시계열 호환).
+    """
+    a = _get(now, "queue", "backlog")
+    b = _get(now, "queue", "base") or _get(now, "queue", "week_cap")
     if a is None or b is None or a <= b:
         return None
     return (f"예제 적체가 그 주 기준을 넘었습니다 — {a}행 / 기준 {b}행.",
