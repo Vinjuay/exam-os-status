@@ -79,11 +79,17 @@ def repo_root() -> str:
 
     09-07 실측: 노트북 생성 스크립트가 다른 cwd에서 부르는 바람에 `git show`가
     조용히 실패해 「직전 판 없음」으로 빠졌고, 커밋 본문이 통째로 비었다.
+
+    09-23 재현: 저장소 경로에 한글이 있을 때 출력을 cp949(한국어 Windows 로케일)로
+    디코드하면 UnicodeDecodeError가 난다. 여기서는 CalledProcessError만 잡으므로
+    예외가 그대로 올라가 main()에서 메시지 전체가 FALLBACK으로 떨어진다.
+    previous_page()와 같이 UTF-8로 고정한다.
     """
     here = Path(__file__).resolve().parent
     try:
         return subprocess.run(["git", "-C", str(here), "rev-parse", "--show-toplevel"],
-                              check=True, capture_output=True, text=True).stdout.strip()
+                              check=True, capture_output=True, text=True,
+                              encoding="utf-8").stdout.strip()
     except subprocess.CalledProcessError:
         return str(here)
 
