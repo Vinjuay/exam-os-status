@@ -52,12 +52,20 @@ def extract(html: str) -> dict:
     # 「적체 a/b」 → 「저장함 N · 이번 주 c 중 d」로 바뀌었다. 「적체」는 cap 시대의
     # 말이라 v1.1이 폐기했고, v1.3 D18이 그 폐기를 전 항목으로 넓혔다.
     # 옛 판본을 다시 읽을 수 있어야 시계열이 이어지므로 둘 다 받는다.
+    #
+    # 다만 지표마다 「sum 스팬 바로 뒤」를 요구하면 한 줄에 둘이 실릴 때 맨 앞
+    # 하나만 읽히고 나머지가 통째로 null이 된다. 09-20에 적체가 저장함으로
+    # 갈린 순간 실제로 그렇게 끊겼고, 되돌릴 때는 반대 방향으로 같은 일이 난다.
+    # 블록을 먼저 떼어 내고 그 안에서 따로 찾으면 순서가 어떻든 둘 다 읽힌다.
+    q_sum = _num(r'⑤</span>예제 큐<span class="sum">(.*?)</span>', html, str) or ""
+
     out["queue"] = {
-        "backlog": _num(r'⑤</span>예제 큐<span class="sum">적체 (\d+)/\d+', html),
-        "base": _num(r'⑤</span>예제 큐<span class="sum">적체 \d+/(\d+)', html),
-        "store": _num(r'⑤</span>예제 큐<span class="sum">저장함 (\d+)', html),
-        "week_cap": _num(r'⑤</span>예제 큐<span class="sum">저장함 \d+ · 이번 주 (\d+) 중 \d+', html),
-        "week_done": _num(r'⑤</span>예제 큐<span class="sum">저장함 \d+ · 이번 주 \d+ 중 (\d+)', html),
+        "backlog": _num(r"적체 (\d+)/\d+", q_sum),
+        "base": _num(r"적체 \d+/(\d+)", q_sum),
+        # 저장함은 적체와 뜻이 달라 backlog에 넣지 않는다 (적체 초과 게이트 오탐 방지).
+        "store": _num(r"저장함 (\d+)", q_sum),
+        "week_cap": _num(r"이번 주 (\d+) 중", q_sum),
+        "week_done": _num(r"이번 주 \d+ 중 (\d+)", q_sum),
         "wait1": _bar("1차 대기", html),
         "wait2": _bar("2차", html),
         "solved": _bar("해결", html),
