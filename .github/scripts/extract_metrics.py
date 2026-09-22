@@ -60,7 +60,9 @@ def extract(html: str) -> dict:
     q_sum = _num(r'⑤</span>예제 큐<span class="sum">(.*?)</span>', html, str) or ""
 
     out["queue"] = {
-        "backlog": _num(r"적체 (\d+)/\d+", q_sum),
+        # G0 ㉰ (우뢰 09-23): 적체는 분모 없이 「적체 N」으로 돌아온다 — 분모였던
+        # 예제 큐 상한은 v1.1 E3·v1.3 D18로 없다. 옛 판본 「적체 N/M」도 계속 읽는다.
+        "backlog": _num(r"적체 (\d+)", q_sum),
         "base": _num(r"적체 \d+/(\d+)", q_sum),
         # 저장함은 적체와 뜻이 달라 backlog에 넣지 않는다 (적체 초과 게이트 오탐 방지).
         "store": _num(r"저장함 (\d+)", q_sum),
