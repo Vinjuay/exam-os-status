@@ -53,17 +53,18 @@ TRACKED = [
 
 
 def _queue_headline(metrics: dict):
-    """⑤ 요약. 옛 판본은 「적체 a/b」, v1.1 §1-8 이후는 「저장함 N·주 d/c」."""
+    """⑤ 요약. 옛 판본 「적체 a/b」, v1.1 §1-8 이후 「저장함 N·주 d/c」,
+    G0 ㉰(09-23) 이후 둘이 함께 실리면 「적체 N·저장함 S·주 d/c」."""
     q = metrics.get("queue") or {}
+    parts = []
     if q.get("backlog") is not None:
         b, base = q["backlog"], q.get("base")
-        return f"적체 {b}/{base}" if base is not None else f"적체 {b}"
+        parts.append(f"적체 {b}/{base}" if base is not None else f"적체 {b}")
     if q.get("store") is not None:
         cap, done = q.get("week_cap"), q.get("week_done")
-        if cap is not None and done is not None:
-            return f"저장함 {q['store']}·주 {done}/{cap}"
-        return f"저장함 {q['store']}"
-    return None
+        parts.append(f"저장함 {q['store']}·주 {done}/{cap}"
+                     if cap is not None and done is not None else f"저장함 {q['store']}")
+    return "·".join(parts) or None
 
 
 def _fraction(metrics: dict, section: str, num: str, den: str):
