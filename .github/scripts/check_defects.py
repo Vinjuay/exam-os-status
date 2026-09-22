@@ -34,12 +34,23 @@ def _get(metrics: dict, *path):
 
 
 # ── OS가 그어 둔 선 ────────────────────────────────────────────────
-def gate_backlog(now, _base):
+def gate_backlog(now, base):
+    """적체 감시.
+
+    분모(기준)가 실린 옛 판본은 「기준 초과」로 본다. G0 ㉰(09-23) 이후 적체는
+    분모 없이 실리므로 넘을 선이 없다 — 그때는 「어제보다 늘었나」로 본다.
+    선이 없다고 감시를 끄면 09-20~23처럼 아무것도 안 보는 게이트가 된다.
+    """
     a, b = _get(now, "queue", "backlog"), _get(now, "queue", "base")
-    if a is None or b is None or a <= b:
+    if a is None:
         return None
-    return (f"예제 적체가 그 주 기준을 넘었습니다 — {a}행 / 기준 {b}행.",
-            "배정 cap을 올리거나 이월분을 줄이는 판단이 필요합니다.")
+    if b is not None:
+        if a <= b:
+            return None
+        return (f"예제 적체가 그 주 기준을 넘었습니다 — {a}행 / 기준 {b}행.",
+                "배정 cap을 올리거나 이월분을 줄이는 판단이 필요합니다.")
+    line = _worse(now, base or {}, ("queue", "backlog"), "예제 적체가 늘었습니다:", unit="행")
+    return (line, "그 주 예제 분량(주간 계획)을 늘릴지, 이월분을 종결로 내릴지 정해야 합니다.") if line else None
 
 
 def gate_expired(now, _base):
