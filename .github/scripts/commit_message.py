@@ -53,17 +53,18 @@ TRACKED = [
 
 
 def _queue_headline(metrics: dict):
-    """⑤ 요약. 옛 판본은 「적체 a/b」, v1.1 §1-8 이후는 「저장함 N·주 d/c」."""
+    """⑤ 요약. 옛 판본 「적체 a/b」, v1.1 §1-8 이후 「저장함 N·주 d/c」,
+    G0 ㉰(09-23) 이후 둘이 함께 실리면 「적체 N·저장함 S·주 d/c」."""
     q = metrics.get("queue") or {}
+    parts = []
     if q.get("backlog") is not None:
         b, base = q["backlog"], q.get("base")
-        return f"적체 {b}/{base}" if base is not None else f"적체 {b}"
+        parts.append(f"적체 {b}/{base}" if base is not None else f"적체 {b}")
     if q.get("store") is not None:
         cap, done = q.get("week_cap"), q.get("week_done")
-        if cap is not None and done is not None:
-            return f"저장함 {q['store']}·주 {done}/{cap}"
-        return f"저장함 {q['store']}"
-    return None
+        parts.append(f"저장함 {q['store']}·주 {done}/{cap}"
+                     if cap is not None and done is not None else f"저장함 {q['store']}")
+    return "·".join(parts) or None
 
 
 def _fraction(metrics: dict, section: str, num: str, den: str):
@@ -79,11 +80,17 @@ def repo_root() -> str:
 
     09-07 실측: 노트북 생성 스크립트가 다른 cwd에서 부르는 바람에 `git show`가
     조용히 실패해 「직전 판 없음」으로 빠졌고, 커밋 본문이 통째로 비었다.
+
+    09-23 재현: 저장소 경로에 한글이 있을 때 출력을 cp949(한국어 Windows 로케일)로
+    디코드하면 UnicodeDecodeError가 난다. 여기서는 CalledProcessError만 잡으므로
+    예외가 그대로 올라가 main()에서 메시지 전체가 FALLBACK으로 떨어진다.
+    previous_page()와 같이 UTF-8로 고정한다.
     """
     here = Path(__file__).resolve().parent
     try:
         return subprocess.run(["git", "-C", str(here), "rev-parse", "--show-toplevel"],
-                              check=True, capture_output=True, text=True).stdout.strip()
+                              check=True, capture_output=True, text=True,
+                              encoding="utf-8").stdout.strip()
     except subprocess.CalledProcessError:
         return str(here)
 
