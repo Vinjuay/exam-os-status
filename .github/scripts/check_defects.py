@@ -34,20 +34,23 @@ def _get(metrics: dict, *path):
 
 
 # ── OS가 그어 둔 선 ────────────────────────────────────────────────
-def gate_backlog(now, _base):
-    """적체가 그 주에 처리하기로 한 양을 넘었는가.
+def gate_backlog(now, base):
+    """적체 감시.
 
-    분모는 원래 예제 큐 상한이었으나 설계변경 v1.1 §1-8 E3가 그 상한을
-    폐기했다. 우뢰 09-22 G0 판정 ㉯로 분모는 「그 주 배정 수」가 맡는다 —
-    살아 있는 수이고, 넘었다는 말의 뜻도 분명해진다(이번 주 안에 못 끝낸다).
-    옛 판본이 실어 둔 「적체 N/M」의 M은 그대로 우선한다(시계열 호환).
+    분모(기준)가 실린 옛 판본은 「기준 초과」로 본다. G0 ㉰(09-23) 이후 적체는
+    분모 없이 실리므로 넘을 선이 없다 — 그때는 「어제보다 늘었나」로 본다.
+    선이 없다고 감시를 끄면 09-20~23처럼 아무것도 안 보는 게이트가 된다.
     """
-    a = _get(now, "queue", "backlog")
-    b = _get(now, "queue", "base") or _get(now, "queue", "week_cap")
-    if a is None or b is None or a <= b:
+    a, b = _get(now, "queue", "backlog"), _get(now, "queue", "base")
+    if a is None:
         return None
-    return (f"예제 적체가 그 주 기준을 넘었습니다 — {a}행 / 기준 {b}행.",
-            "배정 cap을 올리거나 이월분을 줄이는 판단이 필요합니다.")
+    if b is not None:
+        if a <= b:
+            return None
+        return (f"예제 적체가 그 주 기준을 넘었습니다 — {a}행 / 기준 {b}행.",
+                "배정 cap을 올리거나 이월분을 줄이는 판단이 필요합니다.")
+    line = _worse(now, base or {}, ("queue", "backlog"), "예제 적체가 늘었습니다:", unit="행")
+    return (line, "그 주 예제 분량(주간 계획)을 늘릴지, 이월분을 종결로 내릴지 정해야 합니다.") if line else None
 
 
 def gate_expired(now, _base):
