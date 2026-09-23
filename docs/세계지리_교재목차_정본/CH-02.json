@@ -204,16 +204,6 @@
  ],
  "cards": [
   {
-   "level": "L4",
-   "kind": "목차",
-   "front": "교재 「02 세계 지도」(PART Ⅰ · 014쪽)가 거느리는 절 □개를 순서대로?",
-   "back": "2 — ① 옛 세계 지도에 나타난 세계관 → ② 지리 정보 기술의 발달과 공간 인식의 변화<br><span class=\"sup\">추정 ㉡ [12세지01-02] 문면의 두 덩어리 — 절 관측 0건 · 쪽수 밀도로는 2~4 중 어느 것도 가르지 못한다</span>",
-   "mark": "추정 ㉡ 성취기준 문면. 이 장은 사진도 필기도 없다. 절 개수·제목 모두 추론이며, 쪽수 밀도는 근거로 쓰지 않는다",
-   "deck": "(신설) 세계화와지역이해",
-   "tags": "세계지리::세계화와지역이해::세계지도::목차 #추론 #검증필요",
-   "source": "교재 기승전결 CONTENTS(사진 A · 12caad52). 장 제목·쪽수·PART만 원전이고 절은 신규 추론이다 / 기존 273장에 대응 카드 없음"
-  },
-  {
    "level": "L2",
    "kind": "사슬",
    "front": "동양의 세계 인식이 바뀐 자취를 고지도 □개로 시간 순?",
@@ -305,5 +295,14 @@
    "finding": "timid #4: ③ › (1) › 경도차와 시차 3단계 사슬을 개수로 세워 카드 #10에 □를 되살려라",
    "reason": "위와 같은 이유다. 경위도·시차는 [12세지01-02] 문면에 없고 ㉢ 인용도 없어 tier5_only #2가 ㉤ 단독으로 판정했다. 개수를 세우면 ㉤ 단독 추론이 된다. 카드 #10은 □를 되살리는 대신 발행을 보류했다. 교재 사진으로 ㉠이 서면 그때 3으로 세운다."
   }
+ ],
+ "held_gate": [
+  {
+   "front": "교재 「02 세계 지도」(PART Ⅰ · 014쪽)가 거느리는 절 □개를 순서대로?",
+   "reason": "우뢰 09-23 「목차는 장까지」 — This card asks for the chapter's internal section structure: how many sections, their names and their order. The back is the section outline itself (①옛 세계 지도에 나타난 세계관 → ②지리 정보 기술의 발달과 공간 인식의 변화), and the only inference in it (추정 ㉡) is about the section count, so it does not group geographic content. Under the 09-23 decision this card is not made (L0·L1 are already in 목차카드_L0-L1.json). The content of the two sections is already covered by sibling chain cards in the same chapter: #1 (동양 고지도 3), #2 (서양 고지도 5), #3 (메르카토르 4마디) and #4 (지리 정보 기술 3). A rewrite would duplicate them."
+  }
+ ],
+ "toc_0923": [
+  "02 뺌 — 「교재 「02 세계 지도」(PART Ⅰ · 014쪽)가 거느리는 절 □개를 순서대로?」"
  ]
 }
