@@ -2,14 +2,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>UTO 대시보드</title>
 <style>
 :root{--bg:#f5f5f7;--card:#fff;--ink:#1d1d1f;--ink2:#6e6e73;--ink3:#a1a1a6;--line:#e5e5ea;--track:#e8e8ed;
---acc:#0071e3;--acc2:#cfe3fb;--done:#8fb8ea;--good:#248a3d;--bad:#d70015;color-scheme:light}
+--tile:#f5f5f7;--acc:#0071e3;--acc2:#cfe3fb;--done:#8fb8ea;--good:#248a3d;--bad:#d70015;color-scheme:light}
 @media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1c1c1e;--ink:#f5f5f7;--ink2:#a1a1a6;--ink3:#6e6e73;
---line:#2c2c2e;--track:#2c2c2e;--acc:#2997ff;--acc2:#12375e;--done:#1f4f80;--good:#32d74b;--bad:#ff6961;color-scheme:dark}}
+--line:#2c2c2e;--track:#2c2c2e;--tile:#2c2c2e;--acc:#2997ff;--acc2:#12375e;--done:#1f4f80;--good:#32d74b;--bad:#ff6961;color-scheme:dark}}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+html,body{background:transparent}
+body{margin:0;color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
 letter-spacing:-.01em;padding:20px 16px 28px;-webkit-font-smoothing:antialiased}
 .wrap{max-width:920px;margin:0 auto;display:grid;gap:14px}
-.card{background:var(--card);border-radius:20px;padding:22px 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px 24px}
 h2{font-size:13px;font-weight:600;color:var(--ink2);margin:0 0 14px;letter-spacing:.01em}
 .num{font-variant-numeric:tabular-nums}
 .hero{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:6px}
@@ -32,7 +33,7 @@ svg{display:block;width:100%;height:auto}
 .meter .v{position:absolute;right:0;top:-14px;font-size:12px;font-weight:600}
 .tag{font-size:12px;color:var(--ink3);text-align:right}
 .pace{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.tile{background:var(--bg);border-radius:14px;padding:14px 16px}
+.tile{background:var(--tile);border-radius:14px;padding:14px 16px}
 .tile b{display:block;font-size:26px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
 .tile span{font-size:12px;color:var(--ink2)}
 .tile .na{color:var(--ink3)}
@@ -59,5 +60,5 @@ background:color-mix(in srgb,var(--c) 15%,transparent);color:var(--c)}
 <svg viewBox="0 0 1000 150" role="img" aria-label="수능까지 구간 레이스 — 오늘 위치"><rect x="30" y="70" width="940" height="12" rx="6" fill="var(--track)"/><rect x="30.0" y="70" width="198.5" height="12" rx="6" fill="var(--done)"/><line x1="30.0" y1="86" x2="30.0" y2="96" stroke="var(--line)"/><text x="32.0" y="108" font-size="12.5" font-weight="500" fill="var(--ink2)">1 기본기 마무리</text><text x="30.0" y="62" font-size="11" fill="var(--ink3)">9/5</text><rect x="230.5" y="70" width="173.5" height="12" rx="6" fill="var(--acc2)"/><rect x="230.5" y="70" width="75.2" height="12" rx="6" fill="var(--acc)"/><line x1="230.5" y1="86" x2="230.5" y2="116" stroke="var(--line)"/><text x="232.5" y="128" font-size="12.5" font-weight="700" fill="var(--acc)">2 공략법 착수</text><text x="230.5" y="62" font-size="11" fill="var(--ink3)">9/21</text><line x1="406.0" y1="86" x2="406.0" y2="96" stroke="var(--line)"/><text x="408.0" y="108" font-size="12.5" font-weight="500" fill="var(--ink2)">3 연습</text><text x="406.0" y="62" font-size="11" fill="var(--ink3)">10/5</text><line x1="594.0" y1="86" x2="594.0" y2="116" stroke="var(--line)"/><text x="596.0" y="128" font-size="12.5" font-weight="500" fill="var(--ink2)">4 신규 시작 금지</text><text x="594.0" y="62" font-size="11" fill="var(--ink3)">10/20</text><line x1="681.7" y1="86" x2="681.7" y2="96" stroke="var(--line)"/><text x="683.7" y="108" font-size="12.5" font-weight="500" fill="var(--ink2)">5 0교시 개시</text><text x="681.7" y="62" font-size="11" fill="var(--ink3)">10/27</text><line x1="731.9" y1="86" x2="731.9" y2="116" stroke="var(--line)"/><text x="733.9" y="128" font-size="12.5" font-weight="500" fill="var(--ink2)">6 실전만</text><text x="731.9" y="62" font-size="11" fill="var(--ink3)">10/31</text><rect x="958" y="44" width="5" height="5" fill="var(--ink)"/><rect x="968" y="44" width="5" height="5" fill="var(--ink)"/><rect x="963" y="49" width="5" height="5" fill="var(--ink)"/><line x1="958" y1="44" x2="958" y2="82" stroke="var(--ink)" stroke-width="1.5"/><text x="970" y="38" font-size="12" font-weight="700" text-anchor="end" fill="var(--ink)">수능 11/19</text><rect x="271.7" y="18" width="68" height="24" rx="12" fill="var(--acc)"/><text x="305.7" y="35" font-size="12.5" font-weight="700" text-anchor="middle" fill="#fff">D-53</text><line x1="305.7" y1="42" x2="305.7" y2="70" stroke="var(--acc)" stroke-width="2"/><circle cx="305.7" cy="76" r="10" fill="var(--acc)" stroke="var(--card)" stroke-width="3"/></svg><div class="lap"><strong>2구간 · 공략법 착수</strong><span class="num">9/21 – 10/4 · 7/14일 · 7일 남음</span></div><div class="bar"><i style="width:50%"></i></div><div class="crit"><div class="row"><p>외운 방법론을 실제 문항에 적용하는 훈련</p><div class="tag">기록으로 재지 않는 목표</div></div><div class="row"><p>수학 &#x27;시간&#x27; 코드 주 3건 이하</p><div class="meter"><span class="v" style="color:var(--good)">이번 주 0건 / 한도 3</span><div class="t"></div><div class="lim" style="left:50.0%"></div><div class="dot" style="left:0.0%;background:var(--good)"></div></div></div></div></section>
 <section class="card"><h2>페이스</h2><div class="pace"><div class="tile"><b class="num">0 / 12</b><span>예제 이번 주</span></div><div class="tile"><b class="num">10</b><span>밀린 예제</span></div><div class="tile"><b class="num na">계산불가</b><span>이번 주 이행률</span></div></div></section>
 <section class="card"><h2>이번 주 할 일 · 9/28 – 10/3</h2><p class="none" style="margin:0">배정표 없음 — 서명된 주는 2026-09-21</p></section>
-<p class="foot num">자동 갱신 09-27 01:20</p>
+<p class="foot num">자동 갱신 09-27 01:24</p>
 </div></body></html>
