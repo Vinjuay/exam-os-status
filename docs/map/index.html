@@ -1,0 +1,1624 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>METHOD 지도</title>
+<link rel="icon" href="data:,">
+<style>
+/* METHOD 지도 — three views of one data set (graph.js): A 진입 흐름도 (entry pages: question → action → card chips),
+   B 단서 → 행동 표 (one row per card), C 포스터 (과목 › 갈래 › 절 rows × 풀이 단계 lanes › 카드, panned and zoomed by a
+   single CSS transform). Poster zoom bands (data-z on <html>) only toggle visibility, so nothing reflows while zooming.
+   Colour: the six 과목 hues on quiet cool neutrals; 오답 heat is one red luminance ramp; UI chrome stays ink-monochrome;
+   View A adds four fixed meanings (단서 blue · 행동 graphite · 함정 red · 예시 green) used for nothing else there.
+   Type: the device's Korean system face (what Notion uses on iPad) — no webfont, so the poster never shifts after load. */
+:root {
+  --bg: #e9ebef; --fg: #171b21; --muted: #5c6673; --line: #cdd3db; --block: #f6f7f9; --card: #ffffff;
+  --ink: #1f2630; --ink-fg: #ffffff; --danger: #c62828; --focus: #1f2630;
+  --h1: #fbe3e0; --h2: #f3b2ab; --h3: #dd6b60;
+  --c-국어: #af52de; --c-수학: #0a84ff; --c-영어: #30b158; --c-세계지리: #a2845e; --c-사회문화: #ff9500; --c-범과목: #6e7681;
+  --cue: #0a6fe0; --act: #1f2630; --trap: #c62828; --ex: #2a9d4f;
+  --ctl: #6b7685; --ex-bg: #1e7a3b; --ex-on: #ffffff; --cue-t: color-mix(in srgb, #0a6fe0 82%, #171b21);
+  --font: "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14171c; --fg: #e4e8ee; --muted: #9aa4b2; --line: #2b323c; --block: #1b1f26; --card: #232931;
+  --ink: #e4e8ee; --ink-fg: #14171c; --danger: #ff6b6b; --focus: #e4e8ee;
+  --h1: #4b2a28; --h2: #7d3b35; --h3: #b84a40; --c-범과목: #8b949e; --cue: #6cb2ff; --act: #e4e8ee; --trap: #ff6b6b; --ex: #4cd964; --ctl: #707b8b; --ex-bg: #4cd964; --ex-on: #14171c; --cue-t: #6cb2ff; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #14171c; --fg: #e4e8ee; --muted: #9aa4b2; --line: #2b323c; --block: #1b1f26; --card: #232931;
+  --ink: #e4e8ee; --ink-fg: #14171c; --danger: #ff6b6b; --focus: #e4e8ee;
+  --h1: #4b2a28; --h2: #7d3b35; --h3: #b84a40; --c-범과목: #8b949e; --cue: #6cb2ff; --act: #e4e8ee; --trap: #ff6b6b; --ex: #4cd964; --ctl: #707b8b; --ex-bg: #4cd964; --ex-on: #14171c; --cue-t: #6cb2ff; color-scheme: dark }
+
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); overflow: hidden; -webkit-text-size-adjust: 100%; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:is(button, a, input):focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* ---- poster ---- */
+#view { position: fixed; inset: 0; touch-action: none; cursor: grab; overflow: hidden; }
+#view:active { cursor: grabbing; }
+#poster { position: absolute; left: 0; top: 0; width: max-content; transform-origin: 0 0; will-change: transform;
+  display: grid; grid-template-columns: repeat(3, max-content); gap: 260px; padding: 260px; align-items: start; }
+#edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+#edges path, .flow path { fill: none; stroke: var(--ink); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.flow path { stroke: var(--muted); stroke-width: 2; }
+marker path { fill: var(--ink); stroke: none; }
+.flow marker path { fill: var(--muted); }
+
+.subj { position: relative; min-width: 1200px; min-height: 720px; --tint: color-mix(in srgb, var(--sc) 9%, var(--block));
+  background: var(--tint); border: 4px solid var(--sc); border-radius: 36px; padding: 44px 52px 60px;
+  display: grid; gap: 40px; align-content: start; justify-items: start; }
+.subj-h { display: grid; gap: 10px; }
+.subj-h h1 { margin: 0; font-size: 56px; line-height: 1; font-weight: 800; letter-spacing: -0.02em; color: color-mix(in srgb, var(--sc) 72%, var(--fg)); }
+.heat { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.heat.sub { font-size: 20px; font-weight: 500; color: var(--muted); }
+.far { position: absolute; inset: 0; display: grid; place-content: center; gap: 0.25em; text-align: center; pointer-events: none; padding: 40px; }
+.far-l { font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: color-mix(in srgb, var(--sc) 55%, var(--fg)); opacity: 0.92; }   /* hue pulled toward the text colour: raw 과목 hues were 1.8–2.5:1 on the light tints, large text needs 3:1 */
+.far-s { font-weight: 600; justify-self: center; padding: 0.2em 0.6em; border-radius: 0.4em; background: var(--card); font-variant-numeric: tabular-nums; }
+.far-s[data-h="1"] { background: var(--h1); } .far-s[data-h="2"] { background: var(--h2); } .far-s[data-h="3"] { background: var(--h3); }
+
+.shelf { display: flex; flex-wrap: wrap; gap: 14px 36px; max-width: 3100px; }
+.shelf-g { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.shelf-g b { font-size: 16px; color: var(--muted); margin-right: 4px; }
+.pg { font-size: 15px; line-height: 1.25; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); max-width: 420px; }
+
+.subj-b { display: grid; grid-template-columns: max-content 1fr; gap: 36px; align-items: start; }
+.subj-b.nos { grid-template-columns: 1fr; }
+.spine { width: 300px; display: grid; gap: 2px; align-content: start; font-size: 14px; line-height: 1.3; padding-top: 6px; }
+.spine b { font-size: 17px; margin: 0 0 6px; color: var(--muted); }
+.ol { padding: 4px 8px 4px calc(8px + var(--d, 0) * 18px); border-radius: 6px; }
+.ol.d1 { font-weight: 700; font-size: 15px; } .ol.d3 { color: var(--muted); }
+.ol.has::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--sc); margin-right: 7px; vertical-align: 2px; }
+.ol.on { background: var(--ink); color: var(--ink-fg); }
+.branches { display: flex; flex-wrap: wrap; gap: 40px; max-width: 3200px; align-items: flex-start; }
+
+.br { position: relative; background: var(--block); border: 2px solid var(--line); border-radius: 24px; padding: 28px 30px 34px; display: grid; gap: 22px; align-content: start; }
+.br-h { display: grid; gap: 8px; }
+.br-h h2 { margin: 0; font-size: 64px; line-height: 1.05; font-weight: 800; letter-spacing: -0.02em; color: color-mix(in srgb, var(--sc) 60%, var(--fg)); }
+.br-h .heat { font-size: 30px; }
+.cnt { font-size: 20px; color: var(--muted); }
+/* band-1 overlay: 갈래 name + its top-3 heat cards, floating over the lanes (no reflow) */
+.br-far { position: absolute; inset: 0; display: grid; place-content: center; gap: 0.2em; text-align: center; pointer-events: none; padding: 40px; visibility: hidden; }
+.br-far .far-s { display: block; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0.15em auto 0; }
+.lanesets { display: flex; gap: 40px; align-items: flex-start; }
+.lanes { display: grid; gap: 14px; align-items: start; }
+.lane-h { font-size: 15px; font-weight: 600; color: var(--muted); padding: 0 2px 4px; border-bottom: 2px solid var(--line); }
+.sec-h { grid-column: 1 / -1; padding-top: 10px; border-top: 3px solid var(--sc); }
+.sec-h.none { border-top-color: var(--line); }
+.sec-h h3 { margin: 0; font-size: 30px; line-height: 1.25; font-weight: 700; }
+.sec-h .chips { margin-top: 6px; }
+.sec-h.none h3 { color: var(--muted); font-weight: 500; }
+.cell { display: grid; grid-template-columns: repeat(var(--cols, 1), 280px); gap: 10px; align-content: start; align-items: start; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 12px; display: grid; gap: 6px;
+  align-content: start; width: 280px; box-sizing: border-box; font-size: 13px; line-height: 1.35; }
+.card[data-h="1"] { background: var(--h1); } .card[data-h="2"] { background: var(--h2); } .card[data-h="3"] { background: var(--h3); }
+.hide-fact .card.fact { display: none; }
+.card .lb { font-size: 16px; line-height: 1.3; font-weight: 600; }
+.dot { font-style: normal; color: var(--muted); margin-left: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 5px; background: var(--bg); border: 1px solid var(--line); white-space: nowrap; }
+.chip.mk { border-color: var(--muted); }
+.chip.rt { background: var(--ink); color: var(--ink-fg); border-color: var(--ink); }
+.chip.ai { border-style: dashed; color: var(--muted); }
+.chip.warn { color: var(--danger); border-color: var(--danger); }
+.card .body { display: grid; gap: 4px; }
+.card .body p { margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.card .body p[data-f="절차"], .card .body p[data-f="칸"] { -webkit-line-clamp: 3; }
+.card .body b { font-weight: 600; color: var(--muted); font-size: 11.5px; margin-right: 5px; }
+.none { color: var(--muted); font-style: normal; }
+.card.ct { width: 420px; }
+.sel { outline: 4px solid var(--ink); outline-offset: 3px; }
+.rel { outline: 4px dashed var(--ink); outline-offset: 3px; }
+.dim { opacity: 0.18; }
+
+.units { display: flex; flex-wrap: wrap; gap: 24px; max-width: 3100px; align-items: flex-start; }
+.grp { flex-basis: 100%; font-size: 22px; font-weight: 700; color: color-mix(in srgb, var(--sc) 60%, var(--fg)); padding-top: 8px; }
+.unit { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px 18px; display: grid; gap: 10px; align-content: start; width: 456px; box-sizing: border-box; }
+.unit h3 { margin: 0; font-size: 24px; font-weight: 700; line-height: 1.2; }
+.unit h3 .chip { vertical-align: middle; margin-left: 6px; }
+.unit .meta { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; }
+.unit .meta p { margin: 0; white-space: pre-line; }
+.unit .meta .ex::before { content: "예제 "; font-weight: 600; }
+.unit .rows { display: grid; gap: 8px; }
+.unit .card { background: var(--block); }
+
+.flow { position: relative; font-size: 13px; line-height: 1.25; }
+.flow svg { position: absolute; left: 0; top: 0; overflow: visible; }
+.fgrp { position: absolute; box-sizing: border-box; border: 2px dashed color-mix(in srgb, var(--sc) 50%, var(--line)); border-radius: 14px; }
+.fgrp b { position: absolute; left: 12px; top: 6px; font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.fnode { position: absolute; box-sizing: border-box; padding: 8px 10px; background: var(--card); border: 1.5px solid var(--line); border-radius: 10px;
+  text-align: center; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.flbl { position: absolute; transform: translate(-50%, -50%); width: 150px; font-size: 11.5px; line-height: 1.25; text-align: center;
+  color: var(--muted); background: var(--tint); padding: 2px 4px; border-radius: 4px; pointer-events: none; }
+
+/* zoom bands (k thresholds .18 / .32 / .8): 0 과목 · 1 갈래 · 2 절·카드 제목 · 3 카드 본문 (visibility only — no reflow) */
+[data-z="0"] .subj > :not(.far) { visibility: hidden; }
+:root:not([data-z="0"]) .far { visibility: hidden; }
+[data-z="1"] :is(.lane-h, .sec-h, .spine, .grp, .unit > h3, .unit > .meta, .card > *, .br-h) { visibility: hidden; }   /* boxes + heat tints stay */
+[data-z="1"] .br-far { visibility: visible; }
+[data-z="2"] .card .body { visibility: hidden; }
+
+/* ---- fixed chrome ---- */
+#bar { position: fixed; top: 0; left: 0; right: 0; z-index: 30; display: grid; gap: 2px; padding: calc(3px + env(safe-area-inset-top, 0px)) 12px 3px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand { font-weight: 800; font-size: 15px; white-space: nowrap; }
+.tabs { display: flex; gap: 0; padding: 0; border: 1px solid var(--ctl); border-radius: 10px; background: var(--card); flex: none; }
+.tabs button { height: 44px; min-width: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: none; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.tabs button[aria-pressed="true"] { background: var(--ink); color: var(--ink-fg); }
+.ribbon { font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 6px; background: var(--danger); color: var(--ink-fg); white-space: nowrap; }
+#q::placeholder { color: var(--muted); opacity: 1; }   /* UA default #757575 is 3.2:1 on the dark field */
+#q { flex: 1; min-width: 0; height: 44px; border: 1px solid var(--ctl); border-radius: 10px; background: var(--card); padding: 0 12px; font-size: 16px; }
+.fbar { display: flex; align-items: center; gap: 6px; padding: 4px 4px; margin: -4px -4px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.fbar::-webkit-scrollbar { display: none; }
+.fbar > * { flex: none; }   /* a scroller: chips keep their width instead of squeezing into each other at phone width */
+.fbar .gl { font-size: 11.5px; color: var(--muted); white-space: nowrap; padding-left: 6px; }
+.fbar .n { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.fchip { height: 44px; min-width: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--ctl); background: var(--card); white-space: nowrap; font-size: 13.5px; }
+.fchip small { color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.fchip[aria-pressed="true"], .fchip.clr { background: var(--ink); color: var(--ink-fg); border-color: var(--ink); }
+.fchip[aria-pressed="true"] small { color: inherit; opacity: 0.8; }
+#res { position: absolute; left: 12px; right: 12px; top: 100%; margin-top: 4px; max-height: 50vh; overflow: auto; background: var(--card); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); display: grid; padding: 4px; }
+#res button { text-align: left; background: none; border: 0; min-height: 44px; padding: 8px 10px; border-radius: 8px; display: grid; gap: 2px; }
+#res button:hover { background: var(--bg); }
+#res small, #res .empty { color: var(--muted); font-size: 12px; }
+#res .empty { padding: 12px; font-size: 14px; }
+@media (max-width: 479px) { .brand { display: none; } .tabs button { padding: 0 8px; font-size: 13px; } }
+
+#hud { position: fixed; left: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+  font-size: 12px; color: var(--muted); background: var(--block); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-variant-numeric: tabular-nums; max-width: calc(100vw - 150px); }
+#hud.old #hud-t { color: var(--danger); font-weight: 700; }
+#hud button { height: 44px; min-width: 44px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--danger); background: none; color: var(--danger); font-size: 12px; font-weight: 600; }
+#fit { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 10; height: 44px; padding: 0 16px; border-radius: 12px; border: 0;
+  background: var(--ink); color: var(--ink-fg); font-weight: 700; font-size: 14px; }
+#toast { position: fixed; left: 50%; bottom: calc(80px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 40; background: var(--ink); color: var(--ink-fg); padding: 10px 16px; border-radius: 10px; font-weight: 600; }
+.fail { position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; text-align: center; font-size: 18px; padding: 24px; background: var(--bg); }
+
+/* ---- View A: 진입 흐름도 ---- */
+#va { position: fixed; top: var(--barh, 96px); left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; }
+.va-h { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; padding: 4px 16px; border-bottom: 1px solid var(--line); background: var(--block); }
+.va-h h1 { margin: 0; font-size: 20px; line-height: 1.25; font-weight: 800; letter-spacing: -0.01em; }
+.va-h .meta { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; color: var(--muted); }
+.va-h .pn { font-weight: 700; color: var(--fg); }
+.va-h .cnt { font-size: 13px; }
+.badge { font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 5px; border: 1px dashed var(--danger); color: var(--danger); white-space: nowrap; }
+.sm { height: 44px; min-width: 44px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--ctl); background: var(--card); font-size: 12.5px; color: var(--muted); }
+.sm[aria-pressed="true"] { background: var(--ink); color: var(--ink-fg); border-color: var(--ink); }
+.sm.warn { color: var(--danger); border-color: var(--danger); font-weight: 600; }
+.va-body { position: relative; flex: 1; min-height: 0; }
+#va-z { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
+#va-z:active { cursor: grabbing; }
+#va-d { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; font-size: 13px; line-height: 1.3; }
+#va-d svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+#va-d svg path { fill: none; stroke: var(--muted); stroke-width: 2; }
+#va-d svg path.trap { stroke: var(--trap); }
+#va-d svg path.back { stroke-dasharray: 7 5; }
+#va-d marker path { fill: var(--muted); stroke: none; }
+#va-d marker.trap path { fill: var(--trap); }
+.vn { position: absolute; box-sizing: border-box; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr); align-content: center; justify-items: center; gap: 6px; text-align: center; cursor: pointer; overflow: visible; }
+.vn .t { white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.vn.on { outline: 3px solid var(--ink); outline-offset: 4px; border-radius: 10px; }
+.vn.q::before, .vn.q::after { content: ""; position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); z-index: -1; }
+.vn.q::before { background: var(--cue); }
+.vn.q::after { inset: 2.5px; background: color-mix(in srgb, var(--cue) 12%, var(--card)); }
+.vn.q { padding: 14px 0; }
+.vn.q .t { width: 66%; -webkit-line-clamp: 3; font-size: 12.5px; line-height: 1.2; font-weight: 600; color: color-mix(in srgb, var(--cue) 75%, var(--fg)); }
+.vn.a { padding: 8px 10px; background: var(--card); border: 1.5px solid var(--act); border-radius: 10px; min-height: 84px; }
+.vn.a .t { font-weight: 600; color: var(--act); }
+.vn.r { padding: 6px 12px; background: var(--card); border: 1.5px solid var(--line); border-radius: 40px; }
+.vn.r .t { -webkit-line-clamp: 2; }
+.vn.x { padding: 10px 26px; min-height: 84px; }
+.vn.x::before, .vn.x::after { content: ""; position: absolute; inset: 0; clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%); z-index: -1; }
+.vn.x::before { background: var(--trap); }
+.vn.x::after { inset: 2px; background: color-mix(in srgb, var(--trap) 10%, var(--card)); }
+.vn.x .t { font-weight: 600; color: var(--trap); }
+.vn .chips { justify-content: center; width: 100%; min-width: 0; }
+.vchip { font-size: 11px; line-height: 15px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--act); background: var(--card); color: var(--fg);
+  display: inline-block; max-width: 100%; box-sizing: border-box; white-space: normal; text-align: left; }
+.vchip > * { display: inline; vertical-align: baseline; }
+.vchip .tag, .vchip .ex { display: inline-block; margin-left: 3px; vertical-align: 1px; }
+button.vchip { cursor: pointer; }
+.vchip b { font-weight: 700; }
+.vchip .l { overflow-wrap: anywhere; }
+.vchip[data-h="1"] { background: var(--h1); } .vchip[data-h="2"] { background: var(--h2); } .vchip[data-h="3"] { background: var(--h3); }
+.vchip.fact { border-style: dashed; }
+.vchip .tag { font-size: 9.5px; line-height: 13px; padding: 0 3px; border: 1px solid var(--muted); border-radius: 3px; color: var(--muted); }
+.vchip .tag.ai { border-style: dashed; }
+.vchip .tag.warn { color: var(--danger); border-color: var(--danger); }
+.vchip .ex { font-style: normal; font-size: 9px; line-height: 13px; padding: 0 4px; border-radius: 7px; background: var(--ex-bg); color: var(--ex-on); font-weight: 700; }
+.vchip.hi { outline: 3px solid var(--ink); outline-offset: 2px; }
+.vchip.pulse { animation: pulse 1.5s ease-out; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ink) 70%, transparent); } 100% { box-shadow: 0 0 0 22px transparent; } }
+.vl { position: absolute; transform: translate(-50%, -50%); max-width: 190px; width: max-content; font-size: 12px; line-height: 1.25; text-align: center;
+  color: var(--muted); background: var(--bg); padding: 2px 5px; border-radius: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; pointer-events: none; }
+.vl.cue { color: var(--cue-t); font-weight: 600; }
+.vl.trap { color: var(--trap); font-weight: 600; }
+.va-leg { position: absolute; left: 0; right: 0; top: 0; z-index: 3; max-height: 75%; overflow: auto; background: var(--card); border-bottom: 1px solid var(--line);
+  padding: 10px 16px 14px; font-size: 13px; display: grid; gap: 8px; }
+.va-leg .lr { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.va-leg .vchip { white-space: nowrap; }
+.va-leg .lr > b { font-size: 11.5px; color: var(--muted); }
+.lg { font-weight: 600; } .lg.cue { color: var(--cue-t); } .lg.act { color: var(--act); } .lg.trap { color: var(--trap); }
+/* 관점(frame) band — 🧭 items shown as pills above the tree, a 🧭 n badge on each node they apply to; no lines drawn (SCHEMA §10.1) */
+.va-h .fr { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.va-h .fr > b { font-size: 11.5px; color: var(--muted); margin-right: 2px; white-space: nowrap; }
+.va-h .fr { padding: 4px; margin: -4px; flex: 1 0 100%; }
+.va-h .fr.clip { max-height: 44px; overflow: hidden; }   /* one pill row (44 px target + 4 px ring room each side); 관점 펼치기 shows the rest */
+.fpill { font-size: 12px; line-height: 16px; min-height: 44px; min-width: 44px; padding: 3px 12px; display: inline-flex; align-items: center; border-radius: 9px; border: 1px solid var(--muted); background: var(--card); color: var(--fg);
+  max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; text-align: left; }
+.fpill.ai { border-style: dashed; }
+.fpill.todo { border-style: dashed; color: var(--muted); font-style: italic; }
+.fpill small { color: var(--muted); margin-left: 4px; font-size: 10px; }
+.fpill.on, .fpill.hi { outline: 3px solid var(--ink); outline-offset: 1px; }
+/* hit areas: a transparent ::after centred on each in-diagram chip / 🧭 badge reaches 44 screen px (--ki = 1 / zoom) without moving anything;
+   hitPads() clamps it per target to half the gap to the nearest other target or foreign node (--gx / --gy), so enlarged areas never overlap or cover a neighbour */
+.vn button.vchip { position: relative; }
+.vn button.vchip::after, .vn .fb::after { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(max(100%, calc(44px * var(--ki, 1))), calc(100% + 2 * var(--gx, 0px))); height: min(max(100%, calc(44px * var(--ki, 1))), calc(100% + 2 * var(--gy, 0px))); }
+.vn .fb { position: absolute; top: 3px; right: 6px; z-index: 2; font-size: 10px; line-height: 14px; padding: 0 4px; border-radius: 7px; border: 1px solid var(--muted); background: var(--card); color: var(--muted); cursor: pointer; }
+.vn.q .fb { right: auto; left: 50%; transform: translateX(-50%); }
+.vn.fhit { outline: 3px dashed var(--muted); outline-offset: 4px; border-radius: 10px; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+.sw.cue { background: var(--cue); } .sw.act { background: var(--act); } .sw.trap { background: var(--trap); } .sw.ex { background: var(--ex); }
+.va-leg dl { margin: 4px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; max-width: 900px; }
+.va-leg dt { font-weight: 700; } .va-leg dd { margin: 0; color: var(--muted); }
+@media (max-width: 599px) { .va-h h1 { font-size: 17px; } .va-leg dl { grid-template-columns: 1fr; } .va-leg dd { padding-left: 12px; } }
+
+/* ---- View A 유형표 (국어 · 사회문화 · 영어, 10-07): one row per 문항 유형 in exam order = the default of those pages;
+   the flow diagram folds behind 「예전 흐름도」. Card chips are the same .vchip buttons (tap → sheet), sized to 44 px here. */
+#va-t { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#va.tmode .va-body, #va:not(.tmode) #va-t { display: none; }
+@media (min-width: 1024px) { body:has(#sheet:not([hidden])) #va-t { padding-right: 420px; } }
+.tw { display: grid; gap: 14px; padding: 12px 16px calc(96px + env(safe-area-inset-bottom, 0px)); max-width: 1180px;   /* bottom room: the last row scrolls clear of the HUD */ }
+@media (min-width: 1100px) { .tw.side { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; } .tw.side .sg { position: sticky; top: 0; } }
+.tt { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+.tr { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; min-width: 0; }
+.tr .th { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.tr .tno { font-size: 12.5px; line-height: 18px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tr h3 { margin: 0; font-size: 16px; line-height: 1.3; font-weight: 800; }
+.tl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.tl > b { font-size: 11.5px; line-height: 16px; color: var(--muted); min-width: 30px; }
+.sig { font-size: 12.5px; line-height: 18px; padding: 2px 8px; border-radius: 6px; background: var(--block); border: 1px solid var(--line); color: var(--cue-t); overflow-wrap: anywhere; max-width: 100%; }
+.tl button.vchip { min-height: 44px; min-width: 44px; max-width: 100%; font-size: 13px; line-height: 18px; padding: 4px 10px; border-radius: 8px; text-align: left; }
+.tnone { font-size: 12.5px; line-height: 18px; font-weight: 700; padding: 3px 9px; border-radius: 6px; border: 1px dashed var(--danger); color: var(--danger); }
+.sg { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: grid; gap: 8px; min-width: 0; }
+.sg h2 { margin: 0; font-size: 15px; line-height: 1.3; } .sg > p { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+.sg .sr { display: grid; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); min-width: 0; }
+.sg .sl { font-size: 13px; line-height: 1.35; font-weight: 700; color: var(--cue-t); }
+.sg .sa { font-size: 12.5px; line-height: 1.4; color: var(--muted); }
+
+/* ---- View T: 구조 트리 (10-07) — 이원준 트리 도식: 상위 개념 위 · 하위 아래 · 선으로 잇기 · 나뉘는 상자 아래 「기준: …」 · 예/아니오 갈림은 O/X ·
+   카드 = 맨 아래 하단 노드, 부모 아래 한 줄 세로 더미. Box widths are fixed (one column each), so layout never depends on the viewport. */
+#vt { position: fixed; top: var(--barh, 96px); left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; }
+#vt-z { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
+#vt-z:active { cursor: grabbing; }
+#vt-d { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+#vt-d svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+#vt-d svg path { fill: none; stroke: var(--muted); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.tn { position: absolute; box-sizing: border-box; display: grid; gap: 2px; justify-items: center; align-content: center; text-align: center; min-height: 44px; padding: 7px 10px;
+  border-radius: 12px; border: 1.5px solid color-mix(in srgb, var(--sc, var(--muted)) 45%, var(--line)); background: var(--card); color: var(--fg); }
+.tn .nm { font-size: 14.5px; line-height: 1.25; font-weight: 700; overflow-wrap: anywhere; }
+.tn .ct, .tn .pth { font-size: 11.5px; line-height: 1.3; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tn .pth { font-size: 11px; }
+.tn.k-root { background: var(--ink); color: var(--ink-fg); border-color: var(--ink); border-radius: 14px; }
+.tn.k-root .nm { font-size: 19px; font-weight: 800; letter-spacing: 0.02em; } .tn.k-root .ct { color: inherit; opacity: 0.8; }
+.tn.k-subj { border: 2.5px solid var(--sc); background: color-mix(in srgb, var(--sc) 10%, var(--card)); }
+.tn.k-subj .nm { font-size: 17px; font-weight: 800; color: color-mix(in srgb, var(--sc) 62%, var(--fg)); }
+.tn.k-type { background: color-mix(in srgb, var(--sc, var(--muted)) 6%, var(--block)); }
+.tn.k-type .nm { font-size: 13px; }
+.tn.shut { box-shadow: 5px 5px 0 -1.5px var(--card), 5px 5px 0 0 var(--muted); }
+.tn.empty { border-style: dashed; border-color: var(--danger); }
+.tn.shut::after { content: "+"; position: absolute; right: -9px; bottom: -9px; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--ink-fg); font-size: 15px; line-height: 20px; font-weight: 700; }
+.tc { position: absolute; box-sizing: border-box; display: grid; gap: 1px; align-content: start; text-align: left; min-height: 44px; padding: 5px 8px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--fg); font-size: 12.5px; line-height: 1.3; }
+.tc .tid { display: flex; align-items: center; gap: 6px; font-size: 10.5px; line-height: 15px; font-weight: 600; color: var(--muted); padding-right: 12px; }
+.tc .tx { font-size: 10.5px; line-height: 13px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--muted); color: var(--fg); background: var(--bg); }
+.tc .tl { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.tc.hot::after { content: ""; position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+.tc.on { outline: 3px solid var(--ink); outline-offset: 2px; }
+.tc.tgap { align-content: center; text-align: center; background: transparent; border: 1.5px dashed var(--danger); color: var(--danger); font-weight: 700; }
+.tc.tgap.part { border-color: var(--muted); color: var(--muted); font-weight: 600; }
+.tcap { position: absolute; transform: translateX(-50%); max-width: 184px; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; line-height: 16px; padding: 1px 7px; border-radius: 5px;
+  background: var(--bg); color: var(--muted); font-weight: 600; white-space: nowrap; pointer-events: none; }
+.tox { position: absolute; transform: translate(-50%, -50%); width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--fg); background: var(--bg); color: var(--fg);
+  font-size: 12px; font-weight: 800; display: grid; place-items: center; pointer-events: none; }
+.vt-leg { flex: 1 0 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12px; color: var(--muted); padding-bottom: 2px; }
+.vt-leg > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.vt-leg .tcap, .vt-leg .tox { position: static; transform: none; }
+.vt-leg .tox { display: inline-grid; width: 18px; height: 18px; font-size: 11px; }
+.lg-line { display: inline-block; width: 22px; border-top: 1.5px solid var(--muted); }
+.lg-gap { display: inline-block; width: 22px; height: 12px; border: 1.5px dashed var(--danger); border-radius: 3px; }
+.lg-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+.lg-x { font-size: 10.5px; padding: 0 4px; border-radius: 4px; border: 1px solid var(--muted); color: var(--fg); }
+
+/* ---- View B: 단서 → 행동 표 ---- */
+#vb { position: fixed; top: var(--barh, 96px); left: 0; right: 0; bottom: 0; overflow: auto; padding: 12px 16px 90px; box-sizing: border-box; font-size: 13px; line-height: 1.4; }
+#vb table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+#vb col.c0 { width: 15%; } #vb col.c1 { width: 23%; } #vb col.c2 { width: 19%; } #vb col.c3 { width: 12%; } #vb col.c4 { width: 13%; } #vb col.c5 { width: 11%; } #vb col.c6 { width: 7%; }
+#vb th { text-align: left; font-size: 11.5px; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 2px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 1; }
+#vb th button { background: none; border: 0; padding: 0 4px; min-height: 44px; min-width: 44px; color: inherit; font: inherit; text-decoration: underline; }
+#vb td { vertical-align: top; padding: 8px; border-bottom: 1px solid var(--line); white-space: pre-line; overflow-wrap: anywhere; }
+#vb tr[data-id] { cursor: pointer; }
+#vb tr[data-id]:hover td, #vb tr.on td { background: var(--block); }
+#vb td.k { white-space: normal; min-width: 140px; font-weight: 600; }
+#vb td.k b { display: block; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+#vb td.h { white-space: nowrap; text-align: right; font-variant-numeric: tabular-nums; }
+#vb td.h small { display: block; color: var(--muted); font-size: 11px; font-weight: 400; }
+#vb .none { font-style: normal; }
+@media (max-width: 899px) {
+  #vb thead { display: none; }
+  #vb tr { display: block; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin-bottom: 10px; background: var(--card); }
+  #vb td { display: block; border: 0; padding: 4px 0; }
+  #vb td::before { content: attr(data-l); display: block; font-size: 11px; color: var(--muted); font-weight: 600; }
+  #vb td.h { text-align: left; } #vb td.h small { display: inline; margin-left: 6px; }
+  #vb tr[data-id]:hover td, #vb tr.on td { background: none; } #vb tr.on { outline: 3px solid var(--ink); }
+}
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  #bar, #hud, #fit, #sheet, #view, #va, #vt, #toast { display: none !important; }
+  body { overflow: visible; background: #fff; color: #000; }
+  #vb { position: static; overflow: visible; padding: 0; font-size: 9pt; }
+  #vb thead { display: table-header-group; } #vb th { position: static; }
+  #vb tr { break-inside: avoid; }
+}
+
+/* ---- detail sheet: bottom sheet (≤ 50 %) · right panel from 1024 px ---- */
+#sheet { position: fixed; left: 0; right: 0; bottom: 0; max-height: 50%; box-sizing: border-box; overflow: auto; z-index: 20; background: var(--card); border-top: 1px solid var(--line);
+  border-radius: 16px 16px 0 0; padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12); font-size: 14px; }
+@media (min-width: 1024px) { #sheet { top: var(--barh, 96px); bottom: 0; left: auto; width: 420px; max-height: none; border-radius: 0; border-top: 0; border-left: 1px solid var(--line); box-shadow: none; } }
+.sh-top { display: flex; align-items: flex-start; gap: 8px; }
+.crumb { display: flex; flex-wrap: wrap; align-items: center; gap: 0 2px; font-size: 12.5px; color: var(--muted); padding-top: 6px; }
+.crumb button { background: none; border: 0; padding: 4px 6px; color: var(--muted); min-height: 44px; min-width: 44px; border-radius: 6px; }
+.crumb button:hover { color: var(--fg); }
+#sh-x { margin-left: auto; flex: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--ctl); background: var(--bg); font-size: 18px; }
+#sheet h2 { margin: 6px 0 8px; font-size: 20px; line-height: 1.3; text-wrap: balance; }
+#sh-tc { margin: -4px 0 8px; }
+.f { display: grid; gap: 3px; margin-top: 10px; }
+.f b { font-size: 12px; color: var(--muted); }
+.f .v { white-space: pre-wrap; line-height: 1.5; font-size: 14.5px; }
+sup.ai { font-size: 10px; border: 1px dashed var(--muted); border-radius: 4px; padding: 0 4px; margin-left: 5px; vertical-align: 1px; color: var(--muted); }
+.hl { margin-top: 8px; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.hl small { display: block; color: var(--muted); }
+.btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.btn { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 10px; background: var(--ink); color: var(--ink-fg); text-decoration: none; font-weight: 600; border: 0; font-size: 14px; }
+.btn.alt { background: var(--bg); color: var(--fg); border: 1px solid var(--ctl); }
+.anki { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.anki code { font-size: 12.5px; background: var(--bg); padding: 4px 8px; border-radius: 6px; user-select: all; word-break: break-all; }
+.anki .note { flex-basis: 100%; color: var(--muted); font-size: 12px; }
+.refs { margin-top: 14px; display: grid; gap: 8px; }
+.ref { display: grid; gap: 2px; font-size: 13.5px; }
+.ref b { font-size: 11.5px; color: var(--muted); }
+.ref small { color: var(--muted); }
+.lnk { background: none; border: 0; padding: 4px 0; color: var(--fg); text-decoration: underline; text-align: left; font-size: 14px; min-height: 44px; }
+.prov { margin-top: 14px; font-size: 11.5px; color: var(--muted); word-break: break-all; }
+#sheet ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.5; }
+</style>
+
+<header id="bar">
+  <div class="row"><span class="brand">METHOD 지도</span>
+    <nav class="tabs" id="tabs" aria-label="보기"><button type="button" data-v="t" aria-pressed="false">구조</button><button type="button" data-v="a" aria-pressed="false">시작</button><button type="button" data-v="b" aria-pressed="false">표</button><button type="button" data-v="c" aria-pressed="false">큰 지도</button></nav>
+    <input id="q" type="search" placeholder="검색 — 방법론 · 코어테마 · 절" aria-label="검색" autocomplete="off"></div>
+  <div class="row fbar" id="fbar"></div>
+  <div class="row fbar" id="tsbar" hidden></div>
+  <div class="row fbar" id="ptabs" hidden></div>
+  <div class="row fbar" id="tfbar" hidden></div>
+  <div id="res" hidden></div>
+</header>
+<div id="view"><div id="poster"></div></div>
+<section id="va" hidden aria-label="시작">
+  <div class="va-h" id="va-h"></div>
+  <div id="va-t"></div>
+  <div class="va-body"><div id="va-z"><div id="va-d"></div></div><div id="va-leg" class="va-leg" hidden></div></div>
+</section>
+<section id="vt" hidden aria-label="구조">
+  <div class="va-h" id="vt-h"></div>
+  <div class="va-body"><div id="vt-z"><div id="vt-d"></div></div></div>
+</section>
+<section id="vb" hidden aria-label="단서 → 행동 표">
+  <table><colgroup><col class="c0"><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"><col class="c6"></colgroup><thead><tr><th><button type="button" data-s="id">카드</button></th><th>발동조건</th><th>첫 행동</th><th>혼동쌍</th><th>실수포인트</th><th>대표예제</th><th><button type="button" data-s="heat">오답 14일 / 전체</button></th></tr></thead><tbody></tbody></table>
+</section>
+<div id="hud"><span id="hud-t">불러오는 중</span><span id="hud-n"></span><span id="hud-s"></span><span id="hud-f"></span></div>
+<button id="fit" type="button">전체 보기</button>
+<aside id="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" hidden>
+  <div class="sh-top"><nav id="sh-c" class="crumb" aria-label="위치"></nav><button id="sh-x" type="button" aria-label="닫기">✕</button></div>
+  <h2 id="sh-t"></h2>
+  <div id="sh-tc" class="chips" hidden></div>
+  <div id="sh-b"></div>
+</aside>
+<div id="toast" role="status" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="graph.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+const svgEl = t => document.createElementNS('http://www.w3.org/2000/svg', t);
+const root = document.documentElement, poster = $('#poster'), view = $('#view'), hud = $('#hud'), sheet = $('#sheet'), bar = $('#bar');
+const fail = m => document.body.append(el('div', 'fail', m));
+if (!window.d3) return fail('d3를 불러오지 못했습니다 · 인터넷 연결 확인');
+const G = window.GRAPH;
+if (!G || !Array.isArray(G.nodes)) return fail('데이터 없음 — graph.js를 확인하세요');
+
+/* ---- data ---- */
+const nodes = G.nodes, edges = G.edges || [], heat = G.heat || [];
+const byId = new Map(nodes.map(n => [n.id, n]));
+const kids = new Map();
+for (const n of nodes) { if (!kids.has(n.parent)) kids.set(n.parent, []); kids.get(n.parent).push(n); }
+const of = (id, kind) => (kids.get(id) || []).filter(n => !kind || n.kind === kind).sort((a, b) => a.order - b.order);
+const uniq = a => [...new Set(a)];
+const methods = nodes.filter(n => n.kind === 'method');
+const CIRC = '①②③④⑤⑥⑦⑧⑨', FIELDS = ['발동조건', '절차', '혼동쌍', '실수포인트', '대표예제'];
+const MK = ['윤S', '윤A', '윤', '재', '김', '장', '동', '정리'], SHELVES = ['텍스트', '도식', '원천', '작업대', '범과목'];
+const KIND = { subject: '과목', branch: '갈래', page: '쪽', section: '절', method: '방법론', ct_unit: '코어테마 단원', ct_row: '코어테마', outline: '목차' };
+// 풀이 단계 lanes: option names found in the data, ordered by their leading circled digit
+const stKey = s => { const i = CIRC.indexOf((s || '').trim()[0]); return i < 0 ? 99 : i; };
+const stages = uniq(methods.flatMap(m => m.stage || [])).sort((a, b) => stKey(a) - stKey(b));
+if (!stages.length) stages.push('(단계 없음)');
+const laneOf = m => Math.max(0, stages.indexOf((m.stage || [])[0]));   // empty / multi → first listed stage
+// heat: exact opt join only (never by heading text)
+const heatOpt = new Map();
+heat.forEach(h => { if (h.opt) { if (!heatOpt.has(h.opt)) heatOpt.set(h.opt, []); heatOpt.get(h.opt).push(h); } });
+const sum = list => list.reduce((a, h) => ({ d: a.d + (h.rows_14d || 0), all: a.all + (h.rows_all || 0), r: a.r + (h.retry_open || 0) }), { d: 0, all: 0, r: 0 });
+const hOf = new Map(methods.map(m => [m.id, sum((m.opts || []).flatMap(o => heatOpt.get(o) || []))]));
+const lvl = d => d <= 0 ? 0 : d <= 2 ? 1 : d <= 5 ? 2 : 3;
+const heatLine = h => (h.d || h.all || h.r) ? `오답 14일 ${h.d} · 전체 ${h.all}` + (h.r ? ` · 재풀이 ${h.r}` : '') : '';
+const secByBlock = new Map(nodes.filter(n => n.kind === 'section' && n.block).map(s => [s.block, s]));
+const olByBlock = new Map();
+// section rows follow the master's heading order when the section's block is an outline heading; otherwise schema `order`, after them
+const masters = [], olPos = new Map();
+nodes.forEach(o => { if (o.kind !== 'outline' || !o.block) return; if (!masters.includes(o.master)) masters.push(o.master); olPos.set(o.block, masters.indexOf(o.master) * 1e5 + (o.order || 0)); });
+const rowKey = s => s && olPos.has(s.block) ? olPos.get(s.block) : 1e9 + (s ? s.order : 1e8);
+const isFact = m => (m.layer || []).includes('사실'), nFact = methods.filter(isFact).length;
+const hasEx = m => { const v = m.body && m.body['대표예제']; return !!v && !v.includes('예제없음'); };
+// schema 2 entry pages (AI drafts): fixed order first, any other page after in file order
+const PAGE_ORDER = ['수학', '국어 문학', '국어 독서', '국어 화작', '사회문화', '세계지리'];
+const pages = ((G.entry || {}).pages || []).map((p, i) => [p, (PAGE_ORDER.indexOf(p.page) + 1 || 99) * 100 + i]).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+const entryOf = new Map();   // card id → [{page, node}]: every entry page the card appears on
+pages.forEach(p => (p.nodes || []).forEach(n => (n.cards || []).forEach(c => { if (!entryOf.has(c.card)) entryOf.set(c.card, []); entryOf.get(c.card).push({ page: p, node: n }); })));
+// view state: method_map.view2 = { v: 'a'|'b'|'c', p: entry page name, fact: 사실 cards shown }
+let V2 = {}; try { V2 = JSON.parse(localStorage.getItem('method_map.view2')) || {}; } catch (e) {}
+const saveV2 = () => { try { localStorage.setItem('method_map.view2', JSON.stringify(V2)); } catch (e) {} };
+let hideFact = V2.fact !== true; document.body.classList.toggle('hide-fact', hideFact);
+// label hygiene: trailing (METHOD › … 페이지) → 위치 chip · [시작]-style tags → chips · source markers dropped (already `markers` chips) · trailing date () → chip
+const TAGRE = /\[(시작|도약|시가|분석|문항|개념|우뢰[^\]]*)\]/g, SRCRE = /\[(?:윤S|윤A|윤|재|김|장|동|정리)(?:\+(?:윤S|윤A|윤|재|김|장|동|정리))*\]/g;
+function cleanLabel(label) {
+  const chips = []; let t = String(label || '');
+  t = t.replace(/\s*\(METHOD › (.*?)\s*페이지\)\s*$/, (_, p) => { chips.push('위치 ' + p); return ''; });
+  t = t.replace(/\s*\(((?:\d{4}-)?\d\d-\d\d[^)]*)\)\s*$/, (_, d) => { chips.push(d); return ''; });
+  t = t.replace(SRCRE, ' ').replace(TAGRE, (_, g) => { chips.push(g); return ' '; });
+  t = t.replace(/\s{2,}/g, ' ').trim().replace(/^—\s*|\s*—$/g, '').trim();
+  return { text: t, chips };
+}
+
+/* ---- build ---- */
+const els = new Map(), cards = [];
+const reg = (e, n) => { e.dataset.id = n.id; els.set(n.id, e); return e; };
+const chip = (t, c) => el('span', 'chip' + (c ? ' ' + c : ''), t);
+const chipRow = list => { const ch = el('div', 'chips'); list.forEach(t => ch.append(chip(t))); return ch; };
+let flowSeq = 0;
+
+function subjectBlock(s) {
+  const b = reg(el('section', 'subj'), s);
+  b.style.setProperty('--sc', `var(--c-${s.label}, var(--c-범과목))`);
+  const head = el('header', 'subj-h'); head.dataset.tap = s.id; head.append(el('h1', '', s.label));
+  const hs = sum(heat.filter(h => h.subject === s.label)), line = heatLine(hs);
+  if (line) head.append(el('div', 'heat', line));
+  heat.filter(h => h.subject === s.label && h.join === 'area').forEach(h => head.append(el('div', 'heat sub', `영역 ${h.area} · ` + heatLine(sum([h])))));
+  b.append(head);
+  (G.flows || []).filter(f => f.subject === s.label).forEach(f => b.append(flowStrip(f)));
+  const pages = of(s.id, 'page'); if (pages.length) b.append(shelf(pages));
+  const branches = of(s.id, 'branch'), outline = of(s.id, 'outline');
+  if (branches.length || outline.length) {
+    const body = el('div', 'subj-b' + (outline.length ? '' : ' nos'));
+    if (outline.length) body.append(spine(outline));
+    const bw = el('div', 'branches'); branches.forEach(br => bw.append(branchBlock(br))); body.append(bw); b.append(body);
+  }
+  const far = el('div', 'far'); far.append(el('div', 'far-l', s.label));
+  if (line) { const p = el('div', 'far-s', line); p.dataset.h = lvl(hs.d); far.append(p); }
+  b.append(far);
+  return b;
+}
+function shelf(pages) {
+  const w = el('div', 'shelf'), groups = new Map();
+  pages.forEach(p => { const k = p.shelf || '기타'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); });
+  [...SHELVES, ...[...groups.keys()].filter(k => !SHELVES.includes(k))].forEach(k => {
+    if (!groups.has(k)) return;
+    const g = el('div', 'shelf-g'); g.append(el('b', '', k));
+    groups.get(k).forEach(p => g.append(reg(el('span', 'pg', p.label), p))); w.append(g);
+  });
+  return w;
+}
+function spine(outline) {
+  const w = el('aside', 'spine'), byMaster = new Map();
+  outline.forEach(o => { if (!byMaster.has(o.master)) byMaster.set(o.master, []); byMaster.get(o.master).push(o); });
+  byMaster.forEach(list => {
+    w.append(el('b', '', list[0].master_title || '목차'));
+    list.forEach(o => {
+      const e = reg(el('div', 'ol d' + (o.depth || 1), o.label), o); e.style.setProperty('--d', (o.depth || 1) - 1);
+      if (o.block && secByBlock.has(o.block)) { e.classList.add('has'); if (!olByBlock.has(o.block)) olByBlock.set(o.block, []); olByBlock.get(o.block).push(e); }
+      w.append(e);
+    });
+  });
+  return w;
+}
+function branchBlock(b) {
+  const w = reg(el('div', 'br'), b), h = el('header', 'br-h'); h.dataset.tap = b.id;
+  h.append(el('h2', '', b.label));
+  const line = heatLine(sum(heat.filter(x => x.branch === b.id))); if (line) h.append(el('div', 'heat', line));
+  const secs = of(b.id, 'section'), direct = of(b.id, 'method'), units = of(b.id, 'ct_unit');
+  const n = direct.length + secs.reduce((a, s) => a + of(s.id, 'method').length, 0) + units.reduce((a, u) => a + of(u.id, 'ct_row').length, 0);
+  h.append(el('div', 'cnt', `카드 ${n}`)); w.append(h);
+  if (secs.length || direct.length) w.append(lanes(secs, direct));
+  if (units.length) w.append(unitsBlock(units));
+  // band-1 overlay: name + top-3 heat cards of this 갈래 (rank d, all, r; all-zero cards skipped)
+  const far = el('div', 'br-far'); far.append(el('div', 'far-l', b.label));
+  const top = methods.filter(m => m.branch === b.id).map(m => [m, hOf.get(m.id)]).filter(([, x]) => x.d || x.all || x.r)
+    .sort((p, q) => (q[1].d - p[1].d) || (q[1].all - p[1].all) || (q[1].r - p[1].r)).slice(0, 3);
+  if (top.length) top.forEach(([m, x]) => { const p = el('div', 'far-s', `${cleanLabel(m.label).text} · 14일 ${x.d}`); p.dataset.h = lvl(x.d); far.append(p); });
+  else far.append(el('div', 'far-s', '오답 연결 없음'));
+  w.append(far);
+  return w;
+}
+// matrix per 갈래: rows = 절 (header spans all lanes), columns = 풀이 단계; a crowded lane gets 2–3 card columns;
+// more than 7 rows → the rows split into side-by-side column groups (newspaper columns) so the poster stays wide, not tall
+function lanes(secs, direct) {
+  const rows = secs.map(s => ({ sec: s, cards: of(s.id, 'method'), key: rowKey(s) }));
+  if (direct.length) rows.push({ sec: null, cards: direct, key: rowKey(null) });
+  rows.sort((a, b) => a.key - b.key);
+  const per = Math.ceil(rows.length / Math.ceil(rows.length / 7)), wrap = el('div', 'lanesets');
+  for (let i = 0; i < rows.length; i += per) wrap.append(laneGrid(rows.slice(i, i + per)));
+  return wrap;
+}
+function laneGrid(rows) {
+  const max = stages.map(() => 0);
+  const cells = rows.map(r => { const c = stages.map(() => []); r.cards.forEach(m => c[laneOf(m)].push(m)); c.forEach((l, i) => max[i] = Math.max(max[i], l.length)); return c; });
+  let keep = stages.map((_, i) => i).filter(i => max[i]); if (!keep.length) keep = [0];   // lanes empty across this grid collapse
+  const cols = keep.map(i => max[i] <= 4 ? 1 : max[i] <= 9 ? 2 : 3);   // ponytail: fixed breakpoints; tune if a lane still towers
+  const g = el('div', 'lanes'); g.style.gridTemplateColumns = cols.map(c => `${c * 280 + (c - 1) * 10}px`).join(' ');
+  keep.forEach(i => g.append(el('div', 'lane-h', stages[i])));
+  rows.forEach((r, i) => {
+    const sh = r.sec ? reg(el('div', 'sec-h'), r.sec) : el('div', 'sec-h none'); if (r.sec) sh.dataset.tap = r.sec.id;
+    const cl = r.sec ? cleanLabel(r.sec.label) : { text: '(절 없음)', chips: [] };
+    sh.append(el('h3', '', cl.text)); if (cl.chips.length) sh.append(chipRow(cl.chips)); g.append(sh); sh.__ext = [sh];
+    keep.forEach((si, j) => { const c = el('div', 'cell'); c.style.setProperty('--cols', cols[j]); cells[i][si].forEach(m => c.append(card(m))); g.append(c); sh.__ext.push(c); });
+  });
+  return g;
+}
+function card(m) {
+  const c = reg(el('div', 'card'), m), h = hOf.get(m.id), cl = cleanLabel(m.label); c.dataset.h = lvl(h.d); cards.push([m, c]);
+  if (isFact(m)) c.classList.add('fact');
+  const lb = el('div', 'lb', cl.text); if ((m.stage || []).length !== 1) lb.append(el('i', 'dot', '·')); c.append(lb);
+  const ch = el('div', 'chips');
+  cl.chips.forEach(t => ch.append(chip(t)));
+  if ((m.stage || []).length > 1) ch.append(chip(m.stage.join(' · ')));
+  (m.layer || []).forEach(l => ch.append(chip(l))); (m.markers || []).forEach(k => ch.append(chip(k, 'mk')));
+  if (h.r) ch.append(chip(`재풀이 ${h.r}`, 'rt'));
+  if (ch.childNodes.length) c.append(ch);
+  const body = el('div', 'body');
+  FIELDS.forEach(f => { const v = m.body && m.body[f]; if (v) { const p = el('p'); p.dataset.f = f; p.append(el('b', '', f), v); body.append(p); } });
+  c.append(body);
+  return c;
+}
+function unitsBlock(units) {
+  const w = el('div', 'units'); let g;
+  units.forEach(u => { if (u.group !== g) { g = u.group; w.append(el('div', 'grp', u.group_label || u.group || '')); } w.append(unitBox(u)); });
+  return w;
+}
+function unitBox(u) {
+  const w = reg(el('div', 'unit'), u), h = el('h3', '', u.heading || u.label); h.dataset.tap = u.id;
+  if (u.missing_source) h.append(chip('원천 없음', 'warn')); w.append(h);
+  const meta = el('div', 'meta');
+  (u.notes || []).forEach(t => meta.append(el('p', '', t))); (u.unit_examples || []).forEach(t => meta.append(el('p', 'ex', t)));
+  if (meta.childNodes.length) w.append(meta);
+  const rows = el('div', 'rows'); of(u.id, 'ct_row').forEach(r => rows.append(ctCard(r))); w.append(rows);
+  return w;
+}
+function ctCard(r) {
+  const c = reg(el('div', 'card ct'), r), ct = r.ct || {}; cards.push([r, c]);
+  c.append(el('div', 'lb', r.label));
+  const ch = el('div', 'chips');
+  (r.markers || []).forEach(k => ch.append(chip(k, 'mk')));
+  if (ct.x) ch.append(chip(`✗ ${ct.x}`)); if (ct.o) ch.append(chip(`○ ${ct.o}`));
+  if ((r.prov && r.prov.ai || []).includes('text')) ch.append(chip('AI 추론', 'ai'));
+  if (ch.childNodes.length) c.append(ch);
+  const body = el('div', 'body');
+  [['방향성', ct['방향성'], null], ['칸', ct['칸'], ct['칸_state']], ['예제', ct['예제'], ct['예제_state']]].forEach(([f, v, st]) => {
+    if (!v && st !== '없음') return;
+    const p = el('p'); p.dataset.f = f; p.append(el('b', '', f)); v ? p.append(v) : p.append(el('em', 'none', '없음')); body.append(p);
+  });
+  c.append(body);
+  return c;
+}
+// hub mermaid as plain boxes + arrows: rank = longest path from a source; an edge to a group targets the group frame
+function flowStrip(f) {
+  const BW = 250, BH = 84, GX = 170, GY = 28, TOP = 40, LEFT = 16;
+  const ns = f.nodes || [], gs = f.groups || [], es = f.edges || [];
+  const gid = new Set(gs.map(g => g.id)), nid = new Set(ns.map(n => n.id)), mem = g => ns.filter(n => n.group === g).map(n => n.id);
+  const ex = [];
+  es.forEach(e => { const A = gid.has(e.from) ? mem(e.from) : [e.from], B = gid.has(e.to) ? mem(e.to) : [e.to]; A.forEach(a => B.forEach(b => { if (a !== b && nid.has(a) && nid.has(b)) ex.push([a, b]); })); });
+  const rank = new Map(ns.map(n => [n.id, 0]));
+  for (let i = 0; i <= ns.length; i++) { let ch = false; ex.forEach(([a, b]) => { if (rank.get(b) < rank.get(a) + 1) { rank.set(b, rank.get(a) + 1); ch = true; } }); if (!ch) break; }
+  const cols = new Map(); ns.forEach(n => { const r = rank.get(n.id); if (!cols.has(r)) cols.set(r, []); cols.get(r).push(n); });
+  const box = new Map(); cols.forEach((list, r) => list.forEach((n, i) => box.set(n.id, { x: LEFT + r * (BW + GX), y: TOP + i * (BH + GY), w: BW, h: BH })));
+  gs.forEach(g => { const m = mem(g.id).map(id => box.get(id)); if (!m.length) return;
+    const x0 = Math.min(...m.map(b => b.x)) - 12, y0 = Math.min(...m.map(b => b.y)) - 30, x1 = Math.max(...m.map(b => b.x + b.w)) + 12, y1 = Math.max(...m.map(b => b.y + b.h)) + 12;
+    box.set(g.id, { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }); });
+  const all = [...box.values()], W = Math.max(0, ...all.map(b => b.x + b.w)) + 16, H = Math.max(0, ...all.map(b => b.y + b.h)) + 16;
+  const wrap = el('div', 'flow'); wrap.style.width = W + 'px'; wrap.style.height = H + 'px';
+  const svg = svgEl('svg'), mk = 'fa' + (flowSeq++); svg.setAttribute('width', W); svg.setAttribute('height', H);
+  svg.innerHTML = `<defs><marker id="${mk}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>`;
+  wrap.append(svg);
+  const place = (d, b) => { d.style.left = b.x + 'px'; d.style.top = b.y + 'px'; d.style.width = b.w + 'px'; d.style.height = b.h + 'px'; return d; };
+  gs.forEach(g => { const b = box.get(g.id); if (!b) return; const d = place(el('div', 'fgrp'), b); d.append(el('b', '', g.label)); wrap.append(d); });
+  ns.forEach(n => { const d = place(el('div', 'fnode', n.label), box.get(n.id)); d.__flow = { kind: 'flow', label: n.label, group: (gs.find(g => g.id === n.group) || {}).label }; wrap.append(d); });
+  const fan = {}, seen = {}; es.forEach(e => { fan[e.to] = (fan[e.to] || 0) + 1; });   // labels of edges sharing a target spread along the edge
+  es.forEach(e => {
+    const a = box.get(e.from), b = box.get(e.to); if (!a || !b) return;
+    const i = seen[e.to] = (seen[e.to] || 0) + 1, n = fan[e.to], t = n > 1 ? 0.45 + 0.4 * (i - 1) / (n - 1) : 0.5, dy = n > 1 ? (i - 1 - (n - 1) / 2) * 26 : 0;
+    let sx, sy, tx, ty;
+    if (b.x >= a.x + a.w) { sx = a.x + a.w; sy = a.y + a.h / 2; tx = b.x; ty = b.y + b.h / 2; }
+    else if (a.x >= b.x + b.w) { sx = a.x; sy = a.y + a.h / 2; tx = b.x + b.w; ty = b.y + b.h / 2; }
+    else if (b.y > a.y) { sx = a.x + a.w / 2; sy = a.y + a.h; tx = b.x + b.w / 2; ty = b.y; }
+    else { sx = a.x + a.w / 2; sy = a.y; tx = b.x + b.w / 2; ty = b.y + b.h; }
+    // an edge skipping a column bows over (row 0) or under (lower rows) the boxes in between; ponytail: no real routing — a long edge may still pass behind a box
+    const span = Math.round((Math.abs(tx - sx) + BW) / (BW + GX)), bow = span > 1 ? (a.y > TOP ? 1 : -1) * (BH / 2 + 28) : 0;
+    const p = svgEl('path'), dx = (tx - sx) / 2;
+    p.setAttribute('d', Math.abs(tx - sx) > Math.abs(ty - sy) ? `M${sx} ${sy}C${sx + dx} ${sy + bow} ${tx - dx} ${ty + bow} ${tx} ${ty}` : `M${sx} ${sy}L${tx} ${ty}`);
+    p.setAttribute('marker-end', `url(#${mk})`); if (e.dashed) p.setAttribute('stroke-dasharray', '7 5'); svg.append(p);
+    if (e.label) { const l = el('div', 'flbl', e.label); l.style.left = sx + (tx - sx) * t + 'px'; l.style.top = sy + (ty - sy) * t + (bow ? bow * 0.75 : dy) + 'px'; wrap.append(l); }
+  });
+  return wrap;
+}
+
+of(null, 'subject').forEach(s => poster.append(subjectBlock(s)));
+const svgE = svgEl('svg'); svgE.id = 'edges'; poster.append(svgE);
+svgE.innerHTML = '<defs><marker id="ea" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="14" markerHeight="14" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>';
+let W = 0, H = 0;
+function measure() {   // poster size + far-zoom label sizes (band 0 과목 · band 1 갈래); re-run after a layout change (사실 toggle)
+  W = poster.offsetWidth; H = poster.offsetHeight; svgE.setAttribute('width', W); svgE.setAttribute('height', H);
+  of(null, 'subject').forEach(s => {
+    const b = els.get(s.id), fs = Math.max(120, Math.min(b.offsetWidth * 0.9 / (s.label.length + 0.5), b.offsetHeight * 0.4, 480));
+    b.querySelector(':scope > .far > .far-l').style.fontSize = fs + 'px';
+    const fsum = b.querySelector(':scope > .far > .far-s'); if (fsum) fsum.style.fontSize = Math.max(48, fs * 0.42) + 'px';
+  });
+  poster.querySelectorAll('.br').forEach(b => {
+    const n = byId.get(b.dataset.id), fs = Math.max(72, Math.min(b.offsetWidth * 0.85 / (n.label.length + 0.5), b.offsetHeight * 0.26, 240));
+    b.querySelector('.br-far > .far-l').style.fontSize = fs + 'px';
+    b.querySelectorAll('.br-far > .far-s').forEach(p => { p.style.fontSize = Math.max(26, fs * 0.3) + 'px'; });
+  });
+}
+measure();
+
+/* ---- zoom ---- */
+const DUR = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 500;
+const wide = () => matchMedia('(min-width: 1024px)').matches;
+let T = d3.zoomIdentity, band = -1, selEl = null;
+const setBand = k => { const b = k < 0.18 ? 0 : k < 0.32 ? 1 : k < 0.8 ? 2 : 3; if (b !== band) { band = b; root.dataset.z = b; } };
+const zoom = d3.zoom().clickDistance(12).on('zoom', e => { T = e.transform; poster.style.transform = `translate(${T.x}px,${T.y}px) scale(${T.k})`; setBand(T.k); }).on('end', () => saveSoon());
+const sv = d3.select(view).call(zoom).on('dblclick.zoom', null);
+function vis() {   // screen area not covered by the top bar / open sheet
+  const b = bar.offsetHeight; let w = innerWidth, h = innerHeight - b;
+  if (!sheet.hidden) { if (wide()) w -= sheet.offsetWidth; else h -= sheet.offsetHeight; }
+  return { x: 0, y: b, w: Math.max(100, w), h: Math.max(100, h) };
+}
+const fitT = () => { const v = vis(), k = Math.min(v.w / W, v.h / H) * 0.95; return d3.zoomIdentity.translate(v.x + (v.w - W * k) / 2, v.y + (v.h - H * k) / 2).scale(k); };
+const setExtent = () => { zoom.scaleExtent([Math.min(innerWidth / W, (innerHeight - bar.offsetHeight) / H) * 0.6, 1.3]); root.style.setProperty('--barh', bar.offsetHeight + 'px'); };
+const go = t => (DUR && !document.hidden) ? sv.transition().duration(DUR).call(zoom.transform, t) : sv.call(zoom.transform, t);
+function bbox(e) {   // untransformed poster coordinates of an element (or a section header + its cells)
+  const pr = poster.getBoundingClientRect(), rs = (e.__ext || [e]).map(x => x.getBoundingClientRect());
+  const l = Math.min(...rs.map(r => r.left)), t = Math.min(...rs.map(r => r.top)), rt = Math.max(...rs.map(r => r.right)), bt = Math.max(...rs.map(r => r.bottom));
+  return { x: (l - pr.left) / T.k, y: (t - pr.top) / T.k, w: (rt - l) / T.k, h: (bt - t) / T.k };
+}
+function zoomTo(id) {
+  const e = els.get(id); if (!e) return;
+  const v = vis(), r = bbox(e), n = byId.get(id) || {}, top = n.kind === 'subject' || n.kind === 'branch';   // containers: fit width, anchor top
+  const k = Math.max(zoom.scaleExtent()[0], Math.min(1, (v.w - 40) / r.w, top ? 1 : (v.h - 40) / r.h));
+  go(d3.zoomIdentity.translate(v.x + (v.w - r.w * k) / 2 - r.x * k, top ? v.y + 24 - r.y * k : v.y + (v.h - r.h * k) / 2 - r.y * k).scale(k));
+}
+let st; const saveSoon = () => { clearTimeout(st); st = setTimeout(() => { try { localStorage.setItem('method_map.view', JSON.stringify({ x: T.x, y: T.y, k: T.k })); } catch (e) {} }, 300); };
+function restore() {
+  try { const v = JSON.parse(localStorage.getItem('method_map.view')), [k0, k1] = zoom.scaleExtent();
+    if (v && [v.x, v.y, v.k].every(Number.isFinite) && v.k >= k0 && v.k <= k1 && v.x < innerWidth && v.y < innerHeight && v.x + W * v.k > 0 && v.y + H * v.k > 0) {
+      sv.call(zoom.transform, d3.zoomIdentity.translate(v.x, v.y).scale(v.k)); return true; } } catch (e) {}
+  return false;
+}
+const hashId = () => { try { return decodeURIComponent(location.hash.slice(1)); } catch (e) { return ''; } };
+
+/* ---- views: a 진입 · b 표 · c 포스터 (one visible at a time; the poster keeps its transform while hidden) ---- */
+const va = $('#va'), vb = $('#vb'), tabsEl = $('#tabs'), ptabs = $('#ptabs'), tfbar = $('#tfbar'), fitBtn = $('#fit'), fbar = $('#fbar');
+let curView = null, curPage = null, posterInit = false, posterDirty = false;
+function route() {   // hash: #a/<page> · #b · #<node id> in the poster when something is selected (bare node ids keep today's meaning)
+  const h = curView === 't' ? '#t/' + encodeURIComponent(vtKey || '') : curView === 'a' ? '#a/' + encodeURIComponent(curPage || '') : curView === 'b' ? '#b' : selEl ? '#' + encodeURIComponent(selEl.dataset.id) : '';
+  try { history.replaceState(null, '', location.pathname + location.search + h); } catch (e) {}
+}
+function showView(v) {
+  if (v === curView) return;
+  curView = v; V2.v = v; saveV2();
+  tabsEl.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
+  view.hidden = v !== 'c'; va.hidden = v !== 'a'; vb.hidden = v !== 'b'; vt.hidden = v !== 't';
+  fbar.hidden = v !== 'c'; ptabs.hidden = v !== 'a'; tfbar.hidden = v !== 'b'; tsbar.hidden = v !== 't';
+  fitBtn.hidden = v === 'b'; fitBtn.textContent = v === 'a' || v === 't' ? '화면 맞춤' : '전체 보기';
+  root.style.setProperty('--barh', bar.offsetHeight + 'px');
+  if (v === 'c') {
+    if (posterDirty) { measure(); posterDirty = false; }
+    setExtent();
+    if (!posterInit) { posterInit = true; if (!restore()) sv.call(zoom.transform, fitT()); }
+    if (selEl) drawEdges(byId.get(selEl.dataset.id));
+  }
+  if (v === 'a') { if (!curPage) setPage(V2.p); else setMode(pageOf(curPage)); }
+  if (v === 'b') { tq = q.value.trim().toLowerCase(); tableFilter(); }
+  if (v === 't') treeShow();
+  route();
+}
+
+/* ---- View A: entry flow pages ---- */
+const vaZ = $('#va-z'), vaD = $('#va-d'), legEl = $('#va-leg');
+const ETYPE = { question: '질문', action: '행동', result: '결과', stuck: '막힘·전환', frame: '관점' }, ECLS = { question: 'q', action: 'a', result: 'r', stuck: 'x' };
+const FSCOPE = { root: '과목 전체', branch: '갈래', card: '카드 1장' }, isFrame = n => n.type === 'frame';
+// node 236 in a 270 column → 34 px between columns, enough for a 17 px side gutter on either neighbour; row gap 56 holds a 2-line label
+const EW = { question: 236, action: 236, result: 150, stuck: 236 }, EH = { question: 120, result: 66 }, CP = 270, RP = 150, GAP = 56, GUT = 17, PX = 30, PY = 30;
+let vaT = d3.zoomIdentity, DW = 0, DH = 0, chipEls = new Map(), legOpen = false;
+const vaZoom = d3.zoom().scaleExtent([0.3, 2]).clickDistance(12).on('zoom', e => { vaT = e.transform; vaD.style.transform = `translate(${vaT.x}px,${vaT.y}px) scale(${vaT.k})`; vaD.style.setProperty('--ki', 1 / vaT.k); });
+const svA = d3.select(vaZ).call(vaZoom).on('dblclick.zoom', null);
+const vaW = () => vaZ.clientWidth - (!sheet.hidden && wide() ? sheet.offsetWidth : 0);
+const goA = (t, anim) => (anim && DUR && !document.hidden) ? svA.transition().duration(DUR).call(vaZoom.transform, t) : svA.call(vaZoom.transform, t);
+function vaFit(anim) {   // fit to width, never above 1; the extent floor follows the fit so it is always reachable
+  if (!DW || !vaZ.clientWidth) return;
+  const w = vaW(), k = Math.min(1, (w - 8) / DW);
+  vaZoom.scaleExtent([Math.min(0.3, k), 2]);
+  goA(d3.zoomIdentity.translate(Math.max(0, (w - DW * k) / 2), 0).scale(k), anim);
+}
+function vaCenter(e) {   // pan (zooming in to ≥ 0.8) so the element sits in the middle of the uncovered viewport
+  const r = e.getBoundingClientRect(), d = vaD.getBoundingClientRect(), k = Math.max(vaT.k, 0.8);
+  const cx = (r.left + r.width / 2 - d.left) / vaT.k, cy = (r.top + r.height / 2 - d.top) / vaT.k;
+  const w = vaW(), h = vaZ.clientHeight - (!sheet.hidden && !wide() ? sheet.offsetHeight : 0);
+  goA(d3.zoomIdentity.translate(w / 2 - cx * k, h / 2 - cy * k).scale(k), true);
+}
+const pageHeat = p => sum(heat.filter(h => p.branches ? (p.branches.includes(h.branch) || (h.area && p.page.endsWith(h.area))) : h.subject === p.subject)).d;
+pages.forEach(p => { const b = el('button', 'fchip', p.page); b.type = 'button'; b.dataset.page = p.page; b.setAttribute('aria-pressed', 'false'); b.append(el('small', '', String(pageHeat(p)))); b.onclick = () => setPage(p.page); ptabs.append(b); });
+const pageOf = name => pages.find(x => x.page === name) || pages[0];
+function setPage(name) {
+  const p = pageOf(name); if (!p) return;
+  if (p.page !== curPage) flowOpen = false;
+  curPage = p.page; V2.p = p.page; saveV2();
+  ptabs.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.page === p.page));
+  va.classList.remove('tmode');   // the diagram measures its labels while laid out
+  renderHead(p); buildLegend(p); buildDiagram(p); flowChips = chipEls; buildTypes(p); setMode(p); route();
+}
+/* 유형표: G.types[과목].types (work/method_map/type/*.json) — 국어 pages take the rows whose 영역 starts with the page's 갈래 */
+const TYPES = G.types || {};
+const typeRows = p => { const [s, a] = p.page.split(' '), t = TYPES[s]; return t ? (a ? t.types.filter(x => (x['영역'] || '').startsWith(a)) : t.types) : null; };
+let flowOpen = false, flowChips = new Map(), typeChips = new Map();
+const tmode = () => va.classList.contains('tmode');
+function setMode(p) {   // 유형표 unless the page has none or 「예전 흐름도」 is open; chipEls follows what is on screen
+  const tm = !!typeRows(p) && !flowOpen; va.classList.toggle('tmode', tm); chipEls = tm ? typeChips : flowChips;
+  if (curView === 'a') fitBtn.hidden = tm;
+  if (!tm) { vaFit(); hitPads(); }
+}
+const centerChip = ch => ch.closest('#va-t') ? ch.scrollIntoView({ block: 'center', behavior: DUR ? 'smooth' : 'auto' }) : vaCenter(ch);
+function typeChip(id, p, where) {
+  const b = cardChip({ card: id }); b.__ctx = { entry: `${p.page} 유형표 › ${where}` };
+  if (!typeChips.has(id)) typeChips.set(id, []); typeChips.get(id).push(b); return b;
+}
+function buildTypes(p) {
+  const box = $('#va-t'); box.textContent = ''; typeChips = new Map(); box.scrollTop = 0;
+  const rows = typeRows(p); if (!rows) return;
+  const w = el('div', 'tw'), ol = el('ol', 'tt'); ol.setAttribute('aria-label', '문항 유형');
+  rows.forEach(t => {
+    const li = el('li', 'tr'), th = el('div', 'th'); li.dataset.t = t.id;
+    th.append(el('span', 'tno', t['번호대'] || ''), el('h3', '', t['이름'] || t.id)); li.append(th);
+    if ((t['발문 신호'] || []).length) { const r = el('div', 'tl'); r.append(el('b', '', '신호')); t['발문 신호'].forEach(x => r.append(el('span', 'sig', x))); li.append(r); }
+    const r = el('div', 'tl'); r.append(el('b', '', '카드'));
+    (t['카드'] || []).forEach(id => r.append(typeChip(id, p, t['이름'])));
+    if (!(t['카드'] || []).length) { const b = el('span', 'tnone', '카드 없음'); if (t['빈 곳'] && t['빈 곳'] !== 'none') b.title = t['빈 곳']; r.append(b); }
+    li.append(r); ol.append(li);
+  });
+  w.append(ol);
+  // 국어 독서: cards that fire from passage sentences, not from 발문 (type/README.md) — the flow's 「문장에 보이는 신호 말」 branch, beside the table
+  const sq = (p.nodes || []).find(n => n.type === 'question' && /문장에 보이는 신호/.test(n.text || ''));
+  if (sq) {
+    const sg = el('aside', 'sg'); sg.append(el('h2', '', sq.text), el('p', '', '발문이 아니라 지문을 읽는 중에 켜는 카드'));
+    (p.edges || []).filter(e => e.from === sq.id).forEach(e => { const n = (p.nodes || []).find(x => x.id === e.to); if (!n) return;
+      const sr = el('div', 'sr'); sr.append(el('div', 'sl', e.label || ''), el('div', 'sa', n.text || ''));
+      const r = el('div', 'tl'); (n.cards || []).forEach(c => r.append(typeChip(c.card, p, e.label || n.text))); sr.append(r); sg.append(sr); });
+    w.classList.add('side'); w.append(sg);
+  }
+  box.append(w);
+}
+function typeHead(p) {
+  const h = $('#va-h'), rows = typeRows(p); h.textContent = ''; h.append(el('h1', '', '유형을 찾고, 카드를 앞에서부터 켠다'));
+  const meta = el('div', 'meta'); meta.append(el('span', 'pn', p.page), el('span', 'cnt', `유형 ${rows.length} · 카드 없음 ${rows.filter(t => !(t['카드'] || []).length).length}`), flowToggle(p));
+  h.append(meta);
+}
+function flowToggle(p) {
+  const b = el('button', 'sm', flowOpen ? '예전 흐름도 접기' : '예전 흐름도'); b.type = 'button'; b.setAttribute('aria-expanded', flowOpen);
+  b.onclick = () => { flowOpen = !flowOpen; renderHead(p); setMode(p); const t = $('#va-h .sm[aria-expanded]'); if (t) t.focus(); };
+  return b;
+}
+function pageIssues(p) {   // leaf problems (quote not matched / card missing) + cards the collector left unmapped
+  const bad = [];
+  (p.nodes || []).forEach(n => (n.cards || []).forEach(c => { if (c.quote_ok === false || c.missing || !byId.has(c.card)) bad.push(`${n.text} › ${c.card} — ${c.missing || !byId.has(c.card) ? '카드 없음' : '원문과 안 맞음 (AI)'}`); }));
+  const unmapped = (p.stats && p.stats.unmapped) || [];
+  return { n: bad.length + unmapped.length, bad, unmapped };
+}
+function renderHead(p) {
+  if (typeRows(p) && !flowOpen) return typeHead(p);
+  const h = $('#va-h'); h.textContent = ''; h.append(el('h1', '', p.focus || ''));
+  const meta = el('div', 'meta'), st = p.stats || {}, lim = (G.entry.limits || {}).questions || 7; meta.append(el('span', 'pn', p.page));
+  if (p.status !== 'approved') { const b = el('span', 'badge', '초안'); b.title = 'AI 초안 · 우뢰 확인 전'; meta.append(b); }
+  const nq = st.questions != null ? st.questions : p.nodes.filter(n => n.type === 'question').length, nc = st.cards != null ? st.cards : uniq(p.nodes.flatMap(n => (n.cards || []).map(c => c.card))).length;
+  const frs = p.nodes.filter(isFrame), todo = frs.filter(f => f.status === 'todo').length;
+  meta.append(el('span', 'cnt', `질문 ${nq}/${lim} · 카드 ${nc}` + (frs.length ? ` · 관점 ${frs.length}` + (todo ? ` (채울 것 ${todo})` : '') : '')));
+  const lg = el('button', 'sm', '보는 법'); lg.type = 'button'; lg.setAttribute('aria-pressed', legOpen); legEl.hidden = !legOpen;
+  lg.onclick = () => { legOpen = legEl.hidden; legEl.hidden = !legOpen; lg.setAttribute('aria-pressed', legOpen); }; meta.append(lg);
+  const iss = pageIssues(p);
+  if (iss.n) { const b = el('button', 'sm warn', `주의 ${iss.n}`); b.type = 'button'; b.onclick = () => openSheet({ kind: 'issues', label: `주의 ${iss.n}`, page: p, bad: iss.bad, unmapped: iss.unmapped }); meta.append(b); }
+  if (typeRows(p)) meta.append(flowToggle(p));
+  h.append(meta);
+  if (frs.length) {   // 🧭 band: one pill per frame (file order); 🧭-sourced solid, AI-inferred dashed, todo dashed + grey; tap → sheet + targets outlined
+    const fr = el('div', 'fr'); fr.append(el('b', '', '🧭 관점'));
+    frs.forEach(f => { const b = el('button', 'fpill' + (f.status === 'todo' ? ' todo' : '') + (/^🧭/.test(f.source || '') ? '' : ' ai')); b.type = 'button'; b.dataset.f = f.id;
+      b.textContent = f.text || ''; if (f.merged) b.append(el('small', '', `×${f.merged}`)); b.title = `${f.source || ''} · ${FSCOPE[f.scope] || f.scope || ''}`; fr.append(b); });
+    {   // the band is always one pill row (keeps the header short); a button unfolds the rest and only shows while the pills actually wrap
+      fr.classList.add('clip'); const tg = el('button', 'sm', '관점 펼치기'); tg.type = 'button'; tg.setAttribute('aria-pressed', 'false');
+      tg.onclick = () => { const open = !fr.classList.toggle('clip'); tg.textContent = open ? '관점 접기' : '관점 펼치기'; tg.setAttribute('aria-pressed', open); }; meta.append(tg);
+      new ResizeObserver(() => { tg.hidden = fr.classList.contains('clip') && fr.scrollHeight <= fr.clientHeight + 1; }).observe(fr);
+    }
+    h.append(fr);
+  }
+}
+const frameTargets = (p, fid) => (p.edges || []).filter(e => e.from === fid).map(e => ({ id: e.to, label: e.label || '', text: ((p.nodes || []).find(n => n.id === e.to) || {}).text || e.to }));
+const hiFrames = ids => { const all = [...document.querySelectorAll('.fpill')], on = all.filter(b => ids.includes(b.dataset.f)), was = on.length && on.every(b => b.classList.contains('hi')); all.forEach(b => b.classList.remove('hi')); if (!was) on.forEach(b => b.classList.add('hi')); };
+function openFrame(fid) {
+  const p = pageOf(curPage), f = (p.nodes || []).find(n => n.id === fid); if (!f) return;
+  clearMarks(); const pill = document.querySelector(`.fpill[data-f="${fid}"]`); if (pill) pill.classList.add('on');
+  const tg = frameTargets(p, fid); tg.forEach(t => { const d = vaD.querySelector(`.vn[data-n="${t.id}"]`); if (d) d.classList.add('fhit'); });
+  openSheet({ kind: 'frame', label: f.text, frame: f, page: p, targets: tg, prov: p.prov });
+}
+function buildLegend(p) {
+  legEl.textContent = '';
+  const row = (...items) => { const r = el('div', 'lr'); items.forEach(i => r.append(i)); legEl.append(r); };
+  const g = (ch, cls, t) => { const s = el('span', 'lg ' + cls, ch + ' '); s.append(el('span', '', t)); s.querySelector('span').style.fontWeight = 400; return s; };
+  const sw = (cls, t) => { const s = el('span', '', t); s.prepend(el('i', 'sw ' + cls)); return s; };
+  row(el('b', '', '모양'), g('◇', 'cue', '질문'), g('▭', 'act', '행동'), g('○', '', '결과'), g('⬡', 'trap', '막힘·전환'), g('🧭', '', '관점 — 위 띠의 알약 · 노드의 🧭 n 배지 (실선 = 🧭 체크리스트 · 점선 = AI 추론 · 회색 = 채울 것)'));
+  row(el('b', '', '색'), sw('cue', '단서 (질문 · 분기 문구)'), sw('act', '행동 (카드)'), sw('trap', '함정 (막힘 · 전환)'), sw('ex', '예시 있음'));
+  const hs = ['0', '1–2', '3–5', '6+'].map((t, i) => { const s = el('span', 'vchip', t); s.dataset.h = i; return s; });
+  const fact = el('span', 'vchip fact', '사실'), ai = el('span', 'vchip'); ai.append(el('span', 'tag ai', 'AI'));
+  row(el('b', '', '오답 14일'), ...hs, el('span', '', '·'), fact, el('span', '', '종류 = 사실 (인출 대상)'), ai, el('span', '', '인용이 카드 원문과 안 맞음 (AI 초안)'));
+  if ((p.legend || []).length) { const dl = el('dl'); p.legend.forEach(([t, m]) => dl.append(el('dt', '', t), el('dd', '', m))); legEl.append(dl); }
+}
+function cardChip(c, p, n) {   // leaf chip: id · cleaned label (≈26 chars), heat tint, 사실 dashed, 예 dot, AI / 없음 tags; tooltip = field 「quote」
+  const m = byId.get(c.card), b = el('button', 'vchip'); b.type = 'button'; b.dataset.card = c.card;
+  b.append(el('b', '', c.card));
+  if (m) { const t = cleanLabel(m.label).text; b.append(el('span', 'l', ' · ' + (t.length > 26 ? t.slice(0, 25) + '…' : t)));
+    b.dataset.h = lvl(hOf.get(m.id).d); if (isFact(m)) { b.classList.add('fact'); b.append(el('span', 'tag', '사실')); } if (hasEx(m)) b.append(el('i', 'ex', '예')); }
+  if (c.quote_ok === false) b.append(el('span', 'tag ai', 'AI'));
+  if (c.missing || !m) b.append(el('span', 'tag warn', '없음'));
+  if (c.field || c.quote) b.title = `${c.field || ''} 「${c.quote || ''}」`;
+  if (p && n) { b.__ctx = { entry: `${p.page} › ${n.text} · ${c.field || ''} 「${c.quote || ''}」` }; if (!chipEls.has(c.card)) chipEls.set(c.card, []); chipEls.get(c.card).push(b); }
+  return b;
+}
+// polyline → path with rounded corners
+function poly(pts, r = 10) {
+  pts = pts.filter((p, i) => !i || p[0] !== pts[i - 1][0] || p[1] !== pts[i - 1][1]);
+  let d = `M${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i - 1], [cx, cy] = pts[i], [nx, ny] = pts[i + 1], d1 = Math.hypot(cx - px, cy - py), d2 = Math.hypot(nx - cx, ny - cy), k = Math.min(r, d1 / 2, d2 / 2);
+    d += ` L${cx - (cx - px) / d1 * k} ${cy - (cy - py) / d1 * k} Q${cx} ${cy} ${cx + (nx - cx) / d2 * k} ${cy + (ny - cy) / d2 * k}`;
+  }
+  return d + ` L${pts[pts.length - 1][0]} ${pts[pts.length - 1][1]}`;
+}
+function buildDiagram(p) {
+  vaD.textContent = ''; chipEls = new Map();
+  // frames live in the header band, not the grid: drop them and their edges here; their targets get a 🧭 badge below
+  const fset = new Set((p.nodes || []).filter(isFrame).map(n => n.id));
+  const ns = (p.nodes || []).filter(n => !fset.has(n.id)), es = (p.edges || []).filter(e => !fset.has(e.from) && !fset.has(e.to)), byN = new Map(ns.map(n => [n.id, n]));
+  const ftg = new Map(); (p.edges || []).forEach(e => { if (fset.has(e.from) && !fset.has(e.to)) { if (!ftg.has(e.to)) ftg.set(e.to, []); ftg.get(e.to).push(e.from); } });
+  const minC = Math.min(0, ...ns.map(n => n.pos[0] - (n.wide ? 0.5 : 0))), ox = PX - minC * CP, nel = new Map();
+  ns.forEach(n => {
+    const w = (EW[n.type] || 250) + (n.wide ? CP : 0), d = el('div', `vn ${ECLS[n.type] || 'a'}${n.wide ? ' wide' : ''}`); d.dataset.n = n.id;
+    d.style.width = w + 'px'; if (EH[n.type]) d.style.height = EH[n.type] + 'px';
+    d.style.left = ox + n.pos[0] * CP + (CP - w) / 2 + 'px';   // centred in its column (wide: centred on its col)
+    d.append(el('div', 't', n.text));
+    if ((n.cards || []).length) { const ch = el('div', 'chips'); n.cards.forEach(c => ch.append(cardChip(c, p, n))); d.append(ch); }
+    if (ftg.has(n.id)) { const b = el('button', 'fb', `🧭 ${ftg.get(n.id).length}`); b.type = 'button'; b.dataset.fids = ftg.get(n.id).join(' '); b.title = '관점 ' + ftg.get(n.id).join(' · '); d.append(b); }
+    vaD.append(d); nel.set(n.id, d);
+  });
+  // rows: pitch 150 = 105 slot + 45 gap; a taller node widens its slot and pushes every row below it down
+  const rowH = []; ns.forEach(n => { const r = n.pos[1]; rowH[r] = Math.max(rowH[r] || RP, nel.get(n.id).offsetHeight + GAP); });
+  const rowTop = []; let y = PY; for (let r = 0; r < rowH.length; r++) { rowTop[r] = y; y += rowH[r] || RP; }
+  const box = new Map(), boxes = [];
+  ns.forEach(n => { const d = nel.get(n.id), r = n.pos[1], h = d.offsetHeight, x = parseFloat(d.style.left), w = d.offsetWidth, top = rowTop[r] + (rowH[r] - GAP - h) / 2;
+    d.style.top = top + 'px'; const b = { x, y: top, w, h, r, cx: x + w / 2, cy: top + h / 2, q: n.type === 'question' }; box.set(n.id, b); boxes.push(b); });
+  DW = Math.max(...boxes.map(b => b.x + b.w)) + PX; DH = Math.max(...boxes.map(b => b.y + b.h)) + PY;
+  vaD.style.width = DW + 'px'; vaD.style.height = DH + 'px';
+  const svg = svgEl('svg'); svg.setAttribute('width', DW); svg.setAttribute('height', DH);
+  svg.innerHTML = ['va-m', 'va-mt'].map(id => `<marker id="${id}" class="${id === 'va-mt' ? 'trap' : ''}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z"/></marker>`).join('');
+  vaD.prepend(svg);
+  const gapAbove = r => rowTop[r] - GAP / 2, gapBelow = r => rowTop[r] + rowH[r] - GAP / 2;
+  const hit = (x, y, m, a, b) => boxes.some(o => o !== a && o !== b && x > o.x - m && x < o.x + o.w + m && y > o.y - m && y < o.y + o.h + m);
+  // plain (no side) downward edges leave the bottom and enter the top; several on one node spread along the edge (diamonds use the vertex)
+  const plain = es.filter(e => { const a = box.get(e.from), b = box.get(e.to); return a && b && !e.side && b.y >= a.y + a.h; });
+  const spread = (b, list, key, e) => { if (b.q || list.length < 2) return b.cx; const i = list.sort((u, v) => box.get(u[key]).cx - box.get(v[key]).cx).indexOf(e); return b.x + 20 + (b.w - 40) * (i + 0.5) / list.length; };
+  const exitX = e => spread(box.get(e.from), plain.filter(f => f.from === e.from), 'to', e), entryX = e => spread(box.get(e.to), plain.filter(f => f.to === e.to), 'from', e);
+  function ortho(a, b, s, off = 0) {   // leave a sideways (s −1/1) into its gutter; enter b's top/bottom when the gutter meets it, else its facing side; far targets travel the gap row next to b (a back edge rides 20 px lower so its label clears the forward edge's)
+    const sx = s < 0 ? a.x : a.x + a.w, gx = sx + s * GUT, up = a.y >= b.y + b.h, pts = [[sx, a.cy], [gx, a.cy]];
+    if (gx > b.x + 8 && gx < b.x + b.w - 8) { pts.push([gx, up ? b.y + b.h : b.y]); return pts; }
+    const side = gx < b.x ? b.x : b.x + b.w;
+    if (Math.abs(side - gx) <= 80) { pts.push([gx, b.cy], [side, b.cy]); return pts; }
+    const gy = (up ? gapBelow(b.r) : gapAbove(b.r)) + off, s2 = b.cx < gx ? 1 : -1, bx = s2 > 0 ? b.x + b.w : b.x;
+    pts.push([gx, gy], [bx + s2 * GUT, gy], [bx + s2 * GUT, b.cy], [bx, b.cy]); return pts;
+  }
+  const placed = [];
+  es.forEach(e => {
+    const a = box.get(e.from), b = box.get(e.to), A = byN.get(e.from); if (!a || !b) return;
+    const below = b.y >= a.y + a.h, above = a.y >= b.y + b.h, path = svgEl('path'); svg.append(path);
+    let pts = null, same = false;
+    if (!below && !above) {   // same row: straight between the facing sides (a pair of opposite edges splits ±10); a node in between → over the gap above
+      same = true; const L = a.cx < b.cx;
+      if (!boxes.some(o => o !== a && o !== b && o.y < a.y + a.h && o.y + o.h > a.y && o.x > Math.min(a.cx, b.cx) && o.x + o.w < Math.max(a.cx, b.cx))) {
+        const off = es.some(f => f.from === e.to && f.to === e.from) ? (L ? -10 : 10) : 0; pts = [[L ? a.x + a.w : a.x, a.cy + off], [L ? b.x : b.x + b.w, b.cy + off]];
+      } else pts = [[a.cx, a.y], [a.cx, gapAbove(a.r)], [b.cx, gapAbove(b.r)], [b.cx, b.y]];
+    } else if (below && !e.side) {
+      const ex = exitX(e), tx = entryX(e), my = (a.y + a.h + b.y) / 2;
+      path.setAttribute('d', `M${ex} ${a.y + a.h}C${ex} ${my} ${tx} ${my} ${tx} ${b.y}`);
+      const L = path.getTotalLength(); let blocked = false;   // ponytail: a blocked S-curve falls back to the gutter route; no general router
+      for (let i = 1; i < 24 && !blocked; i++) { const q = path.getPointAtLength(L * i / 24); blocked = hit(q.x, q.y, 4, a, b); }
+      if (blocked) pts = ortho(a, b, Math.sign(b.cx - a.cx) || 1, e.back ? 20 : 0);
+    } else pts = ortho(a, b, e.side === 'left' ? -1 : e.side === 'right' ? 1 : (Math.sign(b.cx - a.cx) || 1), e.back ? 20 : 0);
+    if (pts) path.setAttribute('d', poly(pts));
+    path.setAttribute('marker-end', `url(#${e.stuck ? 'va-mt' : 'va-m'})`); if (e.stuck) path.classList.add('trap'); if (e.back) path.classList.add('back');
+    if (!e.label) return;
+    // label: path midpoint unless that sits on a node or another label — then slide along the path (towards the source first); same-row edges may hop above / below the line
+    const cue = e.side || (A.type === 'question' && below), maxW = cue ? b.w : 190;
+    const est = e.label.length * 10.5 + 12, w = Math.min(maxW, est), h = est > maxW ? 32 : 17, L = path.getTotalLength();
+    const free = (x, y) => !boxes.concat(placed).some(o => x - w / 2 < o.x + o.w + 2 && x + w / 2 > o.x - 2 && y - h / 2 < o.y + o.h + 2 && y + h / 2 > o.y - 2);
+    // scan from the midpoint outwards; a back edge scans from 0.3 so its label sits apart from the forward edge's label on the same pair
+    const c0 = e.back ? 0.3 : 0.5, cands = []; for (let i = 0; i <= 16; i++) { cands.push(c0 - i * 0.025); if (i) cands.push(c0 + i * 0.025); }
+    let pt = null;
+    // a cue edge (from a question, or any side-routed edge) labels its target: centred just above the box, so the cue phrase reads as the box's
+    // heading and no gutter column is needed; then beside the entry side, then below the box
+    if (cue) { const left = pts ? pts[pts.length - 1][0] <= b.x + 1 : b.cx < a.cx;
+      for (const [x, yy] of [[b.cx, b.y - h / 2 - 4], [left ? b.x - w / 2 - 6 : b.x + b.w + w / 2 + 6, b.cy], [b.cx, b.y + b.h + h / 2 + 4]]) if (free(x, yy)) { pt = { x, y: yy }; break; } }
+    if (!pt && same && pts.length === 2) { const mx = (pts[0][0] + pts[1][0]) / 2, my = (pts[0][1] + pts[1][1]) / 2, back = e.back || pts[0][1] > a.cy;
+      for (const [x, yy] of [[mx, my], [mx, back ? Math.max(a.y + a.h, b.y + b.h) + 12 : Math.min(a.y, b.y) - 12]]) if (free(x, yy)) { pt = { x, y: yy }; break; } }
+    if (!pt) for (const t of cands) { const q = path.getPointAtLength(L * t); if (free(q.x, q.y)) { pt = q; break; } }
+    if (!pt) pt = path.getPointAtLength(L * 0.3);
+    const l = el('div', 'vl' + (e.stuck ? ' trap' : A.type === 'question' ? ' cue' : ''), e.label); l.style.left = pt.x + 'px'; l.style.top = pt.y + 'px'; l.style.maxWidth = maxW + 'px';
+    vaD.append(l); placed.push({ x: pt.x - w / 2, y: pt.y - h / 2, w, h });
+  });
+  hitPads();
+}
+function hitPads() {   // per in-diagram target: half the free gap (layout px) to the nearest other target / foreign node → --gx / --gy caps on its ::after hit area
+  const d = vaD.getBoundingClientRect(), k = vaT.k || 1; if (!d.width) return;
+  const R = e => { const r = e.getBoundingClientRect(); return { e, l: (r.left - d.left) / k, t: (r.top - d.top) / k, r: (r.right - d.left) / k, b: (r.bottom - d.top) / k }; };
+  const ts = [...vaD.querySelectorAll('.vn button.vchip, .vn .fb')].map(R), ns = [...vaD.querySelectorAll('.vn')].map(R), m = 22 / k;
+  ts.forEach(T => {
+    let gx = 99, gy = 99; const own = T.e.closest('.vn');
+    [...ts.filter(o => o !== T), ...ns.filter(o => o.e !== own)].forEach(O => {
+      if (O.l >= T.r + m || O.r <= T.l - m || O.t >= T.b + m || O.b <= T.t - m) return;   // outside T's widest possible hit box
+      const hg = Math.max(0, O.l >= T.r ? O.l - T.r : T.l - O.r), vg = Math.max(0, O.t >= T.b ? O.t - T.b : T.t - O.b), xo = O.l < T.r && O.r > T.l, yo = O.t < T.b && O.b > T.t;
+      if (xo && !yo) gy = Math.min(gy, vg / 2); else if (yo && !xo) gx = Math.min(gx, hg / 2); else if (!xo && !yo) { if (hg <= vg) gx = Math.min(gx, hg / 2); else gy = Math.min(gy, vg / 2); } else { gx = 0; gy = 0; }
+    });
+    T.e.style.setProperty('--gx', gx + 'px'); T.e.style.setProperty('--gy', gy + 'px');
+  });
+}
+const hiChip = id => { document.querySelectorAll('.vchip.hi').forEach(c => c.classList.remove('hi')); (chipEls.get(id) || []).forEach(c => c.classList.add('hi')); };
+function showInFlow(id) {   // open the entry page the card sits on, highlight + centre its chip, pulse 1.5 s
+  const hits = entryOf.get(id); if (!hits) return;
+  const hit = hits.find(x => x.page.page === curPage) || hits[0];
+  if (curView !== 'a') showView('a');
+  if (curPage !== hit.page.page) setPage(hit.page.page);
+  if (tmode() && !chipEls.has(id)) { flowOpen = true; renderHead(hit.page); setMode(hit.page); }
+  const ch = (chipEls.get(id) || [])[0]; if (!ch) return;
+  hiChip(id); ch.classList.remove('pulse'); void ch.offsetWidth; ch.classList.add('pulse'); centerChip(ch);
+}
+va.addEventListener('click', e => {
+  const fb = e.target.closest('.fb'); if (fb) { hiFrames(fb.dataset.fids.split(' ')); return; }
+  const fp = e.target.closest('.fpill'); if (fp) { openFrame(fp.dataset.f); return; }
+  const ch = e.target.closest('.vchip'); if (ch) { const id = ch.dataset.card; if (byId.has(id)) { select(id, 'stay', ch.__ctx); hiChip(id); const r = ch.getBoundingClientRect(); if (wide() && r.right > innerWidth - sheet.offsetWidth && !tmode()) vaCenter(ch); } else toast(`카드 없음 ${id}`); return; }
+  const nd = e.target.closest('.vn');
+  if (nd) { const p = pageOf(curPage), n = (p.nodes || []).find(x => x.id === nd.dataset.n); if (!n) return;
+    openSheet({ kind: 'enode', label: n.text, etype: n.type, from: n.from || [], page: p, prov: p.prov }); document.querySelectorAll('.vn.on').forEach(x => x.classList.remove('on')); nd.classList.add('on'); return; }
+  if (e.target.closest('#va-z') && !sheet.hidden) closeSheet();
+});
+
+/* ---- selection · edges · sheet ---- */
+const edgePt = (r, o) => {   // point where the ray from r's centre towards o's centre leaves r
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2, dx = o.x + o.w / 2 - cx, dy = o.y + o.h / 2 - cy;
+  if (!dx && !dy) return [cx, cy];
+  const s = Math.min(r.w / 2 / Math.abs(dx || 1e-9), r.h / 2 / Math.abs(dy || 1e-9)); return [cx + dx * s, cy + dy * s];
+};
+function drawEdges(n) {
+  svgE.querySelectorAll('path:not(defs path)').forEach(p => p.remove());
+  edges.filter(e => e.from === n.id || e.to === n.id).forEach(e => {
+    const a = els.get(e.from), b = els.get(e.to); if (!a || !b || a === b) return;
+    const p = bbox(a), q = bbox(b), ln = svgEl('path');
+    const [x1, y1] = edgePt(p, q), [x2, y2] = edgePt(q, p);   // border to border, not centre to centre
+    ln.setAttribute('d', `M${x1} ${y1}L${x2} ${y2}`); ln.setAttribute('marker-end', 'url(#ea)');
+    if (e.prov && e.prov.ai) ln.setAttribute('stroke-dasharray', '8 6');
+    svgE.append(ln); (a === selEl ? b : a).classList.add('rel');
+  });
+}
+const clearMarks = () => { document.querySelectorAll('.sel, .rel, .ol.on, .vn.on, .tc.on, .vn.fhit, .vchip.hi, .fpill.on, .fpill.hi, #vb tr.on').forEach(x => x.classList.remove('sel', 'rel', 'on', 'hi', 'fhit')); svgE.querySelectorAll('path:not(defs path)').forEach(p => p.remove()); };
+const zoomRule = n => (n.kind === 'method' || n.kind === 'ct_row') ? band < 3 : ['subject', 'branch', 'section', 'ct_unit'].includes(n.kind);
+function select(id, how, ctx) {
+  const n = byId.get(id), e = els.get(id); if (!n || !e) return;
+  if (n.kind === 'method' && hideFact && isFact(n) && curView === 'c') setFact(true, false);   // a hidden 사실 card has no box to zoom to (not persisted)
+  clearMarks(); selEl = e; e.classList.add('sel');
+  const blk = n.kind === 'section' ? n.block : n.kind === 'method' ? (byId.get(n.parent) || {}).block : null;
+  if (blk) (olByBlock.get(blk) || []).forEach(o => o.classList.add('on'));
+  openSheet(n, ctx);
+  if (curView === 'c') { drawEdges(n); if (how === 'zoom' || (how !== 'stay' && zoomRule(n))) zoomTo(id); }
+  route();
+}
+function closeSheet() {
+  sheet.hidden = true; clearMarks(); selEl = null; route();
+}
+const link = (t, href, cls) => { const a = el('a', cls || 'btn', t); a.href = href; if (/^https?:/i.test(href)) { a.target = '_blank'; a.rel = 'noopener'; } return a; };
+const aiSup = () => el('sup', 'ai', 'AI 추론');
+const field = (name, val, ai) => { const d = el('div', 'f'), b = el('b', '', name); if (ai) b.append(aiSup()); d.append(b); const v = el('div', 'v'); val == null ? v.append(el('em', 'none', '없음')) : v.textContent = val; d.append(v); return d; };
+const heatRow = (label, h) => { const d = el('div', 'hl', label); const c = Object.entries(h.by_code_14d || {}).map(([k, v]) => `${k} ${v}`).join(' · '); d.append(el('small', '', heatLine(sum([h])) + (c ? ` · 실패 코드 ${c}` : ''))); return d; };
+function refRow(dir, e, id, url) {
+  const r = el('div', 'ref'), t = byId.get(id); r.append(el('b', '', dir));
+  if (t && els.has(id)) { const b = el('button', 'lnk', t.label); b.type = 'button'; b.onclick = () => select(id, 'zoom'); r.append(b); }
+  else if (url) r.append(link(id.replace(/^page:/, '노션 페이지 '), url, 'lnk'));
+  else r.append(el('span', '', id));
+  const q = e.prov && e.prov.quote; if (q) r.append(el('small', '', `${e.prov.field || ''} 「${q}」` + (e.prov.ai ? ' · AI 추론' : '')));
+  return r;
+}
+const btn = (t, fn, cls) => { const b = el('button', cls || 'btn alt', t); b.type = 'button'; b.onclick = fn; return b; };
+function openSheet(n, ctx) {
+  const cr = $('#sh-c'), body = $('#sh-b'), tc = $('#sh-tc'); cr.textContent = ''; body.textContent = ''; tc.textContent = '';
+  const cl = (n.kind === 'method' || n.kind === 'section') ? cleanLabel(n.label) : { text: n.label || '', chips: [] };
+  $('#sh-t').textContent = cl.text; cl.chips.forEach(t => tc.append(chip(t))); tc.hidden = !cl.chips.length;
+  const ai = new Set(n.prov && n.prov.ai || []), L = n.links || {};
+  const chain = []; for (let p = byId.get(n.parent); p; p = byId.get(p.parent)) chain.unshift(p);
+  if (n.kind === 'outline' && n.master_title) chain.push({ label: n.master_title });
+  if (n.kind === 'page') chain.push({ label: n.shelf || '기타' });
+  if (n.kind === 'flow' && n.group) chain.push({ label: n.group });
+  if (n.kind === 'enode') chain.push({ label: n.page.page }, { label: ETYPE[n.etype] || n.etype });
+  if (n.kind === 'frame') chain.push({ label: n.page.page }, { label: '관점' });
+  if (n.kind === 'issues') chain.push({ label: n.page.page });
+  chain.forEach((p, i) => { if (i) cr.append(el('span', '', '›')); if (p.id && els.has(p.id)) { const b = el('button', '', p.label); b.type = 'button'; b.onclick = () => select(p.id, 'zoom'); if (p.kind === 'branch' && ai.has('branch')) b.append(aiSup()); cr.append(b); } else cr.append(el('span', '', p.label)); });
+  const chips = el('div', 'chips'), add = (t, c, flag) => { const s = chip(t, c); if (flag) s.append(aiSup()); chips.append(s); };
+  if (n.kind === 'method') {
+    (n.stage || []).forEach(s => add(s, '', ai.has('stage'))); (n.layer || []).forEach(l => add(l, '', ai.has('layer'))); (n.markers || []).forEach(k => add(k, 'mk'));
+    body.append(chips);
+    const h = hOf.get(n.id); if (h && heatLine(h)) body.append(el('div', 'hl', heatLine(h)));
+    (n.opts || []).forEach(o => { const list = heatOpt.get(o) || []; const d = el('div', 'hl', `연결 ${o}`); d.append(el('small', '', list.length ? heatLine(sum(list)) || '오답 0' : '오답 기록 없음')); body.append(d); });
+    if (ctx && ctx.entry) body.append(field('나온 자리', ctx.entry));
+    FIELDS.forEach(f => { const v = n.body && n.body[f]; if (v) body.append(field(f, v, ai.has(f))); });
+  } else if (n.kind === 'ct_row') {
+    const ct = n.ct || {}; (n.markers || []).forEach(k => add(k, 'mk')); if (ct.x) add(`✗ ${ct.x}`); if (ct.o) add(`○ ${ct.o}`); body.append(chips);
+    const bx = el('div'); if (ai.has('text')) { const b = el('b', '', '본문'); b.append(aiSup()); b.className = 'f'; bx.append(b); }
+    bx.append(field('방향성', ct['방향성']), field('칸', ct['칸']), field('예제', ct['예제'])); body.append(bx);
+  } else if (n.kind === 'ct_unit') {
+    if (n.group_label) body.append(el('div', 'hl', n.group_label));
+    if (n.missing_source) { add('원천 없음', 'warn'); body.append(chips); }
+    if (n.columns) body.append(field('열 이름', n.columns.join(' · ')));
+    if ((n.notes || []).length) body.append(field('메모', n.notes.join('\n'), ai.has('notes')));
+    if ((n.unit_examples || []).length) body.append(field('예제', n.unit_examples.join('\n')));
+    body.append(el('div', 'hl', `행 ${of(n.id, 'ct_row').length}`));
+  } else if (n.kind === 'section') {
+    body.append(el('div', 'hl', `${n.block_type || '쪽'} · 카드 ${of(n.id, 'method').length}`));
+  } else if (n.kind === 'outline') {
+    body.append(el('div', 'hl', `목차 단계 ${n.depth || 1}`));
+    const s = n.block && secByBlock.get(n.block); if (s && els.has(s.id)) body.append(btn('절로 이동', () => select(s.id, 'zoom')));
+  } else if (n.kind === 'branch' || n.kind === 'subject') {
+    const list = heat.filter(h => n.kind === 'branch' ? h.branch === n.id : h.subject === n.label);
+    const hl = heatLine(sum(list)); if (hl) body.append(el('div', 'hl', hl));
+    list.forEach(h => body.append(heatRow(h.opt || (h.branch ? (byId.get(h.branch) || {}).label + ' 전체' : h.area ? `영역 ${h.area}` : '과목 전체'), h)));
+    if (n.kind === 'branch' && ai.has('order')) body.append(el('div', 'hl', '갈래 순서: AI 추론 (허브 구성도 순)'));
+  } else if (n.kind === 'warn') {
+    const ul = el('ul'); (n.list || []).forEach(w => ul.append(el('li', '', w))); body.append(ul);
+  } else if (n.kind === 'enode') {   // entry page node: type · page, full text, the cards whose cues it combines
+    body.append(el('div', 'hl', `${ETYPE[n.etype] || n.etype} · ${n.page.page}` + (n.page.status !== 'approved' ? ' · 초안' : '')));
+    body.append(field('본문', n.label));
+    if (n.from.length) { const d = el('div', 'f'); d.append(el('b', '', '묶은 카드')); const ch = el('div', 'chips'); n.from.forEach(id => ch.append(cardChip({ card: id }))); d.append(ch); body.append(d); }
+  } else if (n.kind === 'frame') {   // 태도/프레임 viewpoint: scope · status · 🧭 source, the nodes it applies to (tap → outline + centre)
+    const f = n.frame;
+    body.append(el('div', 'hl', `관점 · ${n.page.page} · ${FSCOPE[f.scope] || f.scope || '—'} · ${f.status === 'todo' ? '채울 것 (내용 미정)' : '채움'}` + (f.merged ? ` · 🧭 항목 ${f.merged}개 합침` : '')));
+    body.append(field('본문', f.text || ''), field('출처', f.source || '—', !/^🧭/.test(f.source || '')));
+    if (n.targets.length) { const d = el('div', 'f'); d.append(el('b', '', '적용되는 곳'));
+      n.targets.forEach(t => d.append(btn(`${t.label ? t.label + ' → ' : ''}${t.text}`, () => { const x = vaD.querySelector(`.vn[data-n="${t.id}"]`); if (!x) return; document.querySelectorAll('.vn.fhit').forEach(y => y.classList.remove('fhit')); x.classList.add('fhit'); vaCenter(x); }))); body.append(d); }
+  } else if (n.kind === 'gap') {   // 구조 트리의 점선 상자: 이 자리에 카드가 (일부) 없음
+    if (n.where) body.append(el('div', 'hl', n.where));
+    body.append(field('빈 곳', n.gap));
+  } else if (n.kind === 'issues') {
+    if (n.bad.length) { const ul = el('ul'); n.bad.forEach(w => ul.append(el('li', '', w))); body.append(ul); }
+    if (n.unmapped.length) { const d = el('div', 'f'); d.append(el('b', '', '이 장에 안 실린 카드')); const ch = el('div', 'chips'); n.unmapped.forEach(id => ch.append(cardChip({ card: id }))); d.append(ch); body.append(d); }
+  }
+  if (n.id) {   // explicit references only
+    const out = edges.filter(e => e.from === n.id), inn = edges.filter(e => e.to === n.id);
+    if (out.length || inn.length) { const d = el('div', 'refs'); out.forEach(e => d.append(refRow('참조', e, e.to, e.to_url))); inn.forEach(e => d.append(refRow('참조됨', e, e.from, null))); body.append(d); }
+  }
+  const btns = el('div', 'btns');
+  if (n.kind === 'method') {
+    if (L.master) btns.append(link('마스터본', L.master)); if (L.memo) btns.append(link('암기본', L.memo)); if (L.row) btns.append(link('노션 행', L.row));
+    if (entryOf.has(n.id)) btns.append(btn('흐름도에서 보기', () => showInFlow(n.id)));
+    if (curView !== 'c') btns.append(btn('큰 지도에서 보기', () => { showView('c'); select(n.id, 'zoom'); }));
+  } else if (n.url) btns.append(link(n.kind === 'section' ? '마스터본' : '노션', n.url));
+  if (L.anki) {
+    const a = el('div', 'anki'); a.append(link('Anki 덱 열기', 'anki://x-callback-url/search?query=' + encodeURIComponent(L.anki)));
+    a.append(btn('검색어 복사', () => copy(L.anki)), el('code', '', L.anki));
+    if (L.anki_note) a.append(el('small', 'note', L.anki_note)); btns.append(a);
+  }
+  if (btns.childNodes.length) body.append(btns);
+  if (n.prov) body.append(el('div', 'prov', `출처 ${n.prov.src || '—'}` + (n.prov.edited ? ` · 수정 ${String(n.prov.edited).slice(0, 16).replace('T', ' ')}` : '') + (ai.size ? ((n.kind === 'enode' || n.kind === 'frame') ? ` · AI 초안 (${[...ai].join(', ')})` : ` · AI 추론 ${[...ai].join(' · ')}`) : '')));
+  sheet.hidden = false; sheet.scrollTop = 0; $('#sh-x').focus({ preventScroll: true });
+}
+sheet.addEventListener('click', e => { const ch = e.target.closest('.vchip'); if (ch && byId.has(ch.dataset.card)) select(ch.dataset.card, 'stay'); });
+let tt; const toast = m => { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(tt); tt = setTimeout(() => { t.hidden = true; }, 1500); };
+function copy(s) {
+  const fb = () => { const ta = el('textarea'); ta.value = s; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0'; document.body.append(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); toast(ok ? '복사됨' : '복사 실패'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(() => toast('복사됨'), fb); else fb();
+}
+
+/* ---- search + filter chips ---- */
+const text = n => [n.id, n.label, n.heading, ...(n.body ? Object.values(n.body) : []), ...(n.ct ? [n.ct['방향성'], n.ct['칸'], n.ct['예제']] : []), ...(n.notes || []), ...(n.unit_examples || [])].filter(Boolean).join('\n').toLowerCase();
+const idx = nodes.filter(n => KIND[n.kind] && n.kind !== 'subject' && els.has(n.id)).map(n => ({ n, t: text(n), l: (n.label || '').toLowerCase() }));
+const q = $('#q'), res = $('#res');
+function pick(id) {   // search hit: a chip on the current entry page → highlight there; otherwise the poster
+  if (curView === 'a' && chipEls.has(id)) { const ch = chipEls.get(id)[0]; select(id, 'stay', ch.__ctx); hiChip(id); centerChip(ch); return; }
+  if (curView === 't' && vtEls.has(id)) { select(id, 'stay'); hiTree(id); vtCenter(vtEls.get(id)[0]); return; }
+  if (curView !== 'c') showView('c');
+  select(id, 'zoom');
+}
+q.addEventListener('input', () => {
+  const s = q.value.trim().toLowerCase();
+  if (curView === 'b') { tq = s; tableFilter(); }
+  res.textContent = ''; if (!s) { res.hidden = true; return; }
+  const hits = idx.filter(r => r.t.includes(s)).sort((a, b) => b.l.includes(s) - a.l.includes(s)).slice(0, 20);
+  if (!hits.length) res.append(el('div', 'empty', '찾은 게 없음'));
+  hits.forEach(({ n }) => { const b = el('button', '', n.label); b.type = 'button'; const crumb = []; for (let p = byId.get(n.parent); p; p = byId.get(p.parent)) crumb.unshift(p.label);
+    b.append(el('small', '', `${KIND[n.kind]} · ${crumb.join(' › ')}`)); b.onclick = () => { res.hidden = true; q.blur(); pick(n.id); }; res.append(b); });
+  res.hidden = false;
+});
+q.addEventListener('focus', () => { if (q.value.trim()) q.dispatchEvent(new Event('input')); });
+const F = { heat: false, layer: new Set(), stage: new Set(), markers: new Set() };
+const clr = el('button', 'fchip clr', '조건 지우기'); clr.type = 'button'; clr.hidden = true;
+function applyFilter() {   // hidden 사실 cards drop out of the counts
+  const on = F.heat || F.layer.size || F.stage.size || F.markers.size; let k = 0, tot = 0;
+  const has = (set, arr) => !set.size || (arr || []).some(v => set.has(v));
+  cards.forEach(([n, e]) => { if (hideFact && isFact(n)) { e.classList.remove('dim'); return; } tot++;
+    const ok = (!F.heat || (hOf.get(n.id) || { d: 0 }).d > 0) && has(F.layer, n.layer) && has(F.stage, n.stage) && has(F.markers, n.markers); e.classList.toggle('dim', !!on && !ok); if (ok) k++; });
+  clr.hidden = !on; $('#hud-f').textContent = on ? ` · 필터 ${k}/${tot}` : '';
+}
+const fchip = (group, val, label) => { const b = el('button', 'fchip', label || val); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); if (group === 'heat') F.heat = on; else on ? F[group].add(val) : F[group].delete(val); applyFilter(); }; return b; };
+const allMk = new Set(nodes.flatMap(n => n.markers || []));
+fbar.append(fchip('heat', null, '오답 있는 곳'));
+const factChip = el('button', 'fchip fx', '사실 카드 보기'); factChip.type = 'button'; factChip.setAttribute('aria-pressed', !hideFact); factChip.onclick = () => setFact(hideFact);
+if (nFact) fbar.append(factChip);
+function setFact(show, persist = true) {   // 층위 「사실」 cards (인출 대상) are hidden on the poster by default
+  hideFact = !show; document.body.classList.toggle('hide-fact', hideFact); if (persist) { V2.fact = show; saveV2(); } factChip.setAttribute('aria-pressed', show);
+  $('#hud-s').textContent = hideFact ? ` · 사실 ${nFact} 숨김` : '';
+  if (curView === 'c') { measure(); setExtent(); } else posterDirty = true;
+  applyFilter();
+}
+const grp = (name, list, g) => { if (!list.length) return; fbar.append(el('span', 'gl', name)); list.forEach(v => fbar.append(fchip(g, v))); };
+grp('종류', uniq(methods.flatMap(m => m.layer || [])), 'layer');
+grp('출처', [...MK.filter(k => allMk.has(k)), ...[...allMk].filter(k => !MK.includes(k))], 'markers');
+grp('단계', stages.filter(s => s !== '(단계 없음)'), 'stage');
+clr.onclick = () => { F.heat = false; F.layer.clear(); F.stage.clear(); F.markers.clear(); fbar.querySelectorAll('[aria-pressed]:not(.fx)').forEach(b => b.setAttribute('aria-pressed', 'false')); applyFilter(); };
+fbar.append(clr);
+if (G.sample === true) q.before(el('span', 'ribbon', '예시 데이터'));
+$('#hud-s').textContent = hideFact && nFact ? ` · 사실 ${nFact} 숨김` : '';
+
+/* ---- View B: 단서 → 행동 표 (one row per method card) ---- */
+const FB = { subj: new Set(), stage: new Set(), layer: new Set() };
+let tq = '', tsort = { by: 'heat', dir: 1 };
+const brHeat = m => { let h = heat.find(x => x.branch === m.branch && !x.opt); if (!h && /^br:국어\/문학/.test(m.branch || '')) h = heat.find(x => x.area === '문학'); return h ? h.rows_14d || 0 : 0; };
+function firstStep(s) {   // first step of 절차: from the first ① / 1) / 1. / A. to the next marker, ` // ` or 180 chars; no marker → first 160 chars
+  if (!s) return null;
+  const starts = ['①', '1)', '1. ', 'A. '].map(k => s.indexOf(k)).filter(i => i >= 0);
+  if (!starts.length) return s.length > 160 ? s.slice(0, 160) + '…' : s;
+  const rest = s.slice(Math.min(...starts)), ends = ['②', '2)', '2. ', 'B. ', ' // '].map(k => rest.indexOf(k, 1)).filter(j => j > 0), j = Math.min(180, ...ends);
+  return rest.slice(0, j).trim() + (j < rest.length ? '…' : '');
+}
+const trows = methods.map(m => {
+  const h = hOf.get(m.id), bh = brHeat(m), tr = el('tr'), b = m.body || {}; tr.dataset.id = m.id;
+  const td = (cls, l, v) => { const d = el('td', cls); d.dataset.l = l; v == null ? d.append(el('em', 'none', '—')) : d.textContent = v; tr.append(d); return d; };
+  const k = td('k', '카드', ''); k.append(el('b', '', m.id), cleanLabel(m.label).text);
+  td('', '발동조건', b['발동조건']); td('', '첫 행동', firstStep(b['절차'])); td('', '혼동쌍', b['혼동쌍']); td('', '실수포인트', b['실수포인트']); td('', '대표예제', b['대표예제']);
+  const hc = td('h', '오답 14일 / 전체', (h.d || h.all) ? `${h.d} / ${h.all}` : '—'); if (!h.d && !h.all) hc.append(el('small', '', `갈래 ${bh}`));
+  return { m, h, bh, tr, t: text(m) };
+});
+const tbody = $('#vb tbody'), tn = el('span', 'n'); tn.id = 'tb-n';
+function tableSort() {
+  const byId_ = (a, b) => a.m.id.localeCompare(b.m.id, 'ko', { numeric: true });
+  const cmp = tsort.by === 'id' ? byId_ : (a, b) => (b.h.d - a.h.d) || (b.h.all - a.h.all) || (b.bh - a.bh) || byId_(a, b);
+  trows.sort((a, b) => cmp(a, b) * tsort.dir).forEach(r => tbody.append(r.tr));
+  vb.querySelectorAll('th button').forEach(x => { x.textContent = (x.dataset.s === 'id' ? '카드' : '오답 14일 / 전체') + (x.dataset.s === tsort.by ? (tsort.dir > 0) === (tsort.by === 'id') ? ' ▴' : ' ▾' : ''); });
+}
+function tableFilter() {
+  const has = (set, arr) => !set.size || (arr || []).some(v => set.has(v)); let k = 0;
+  trows.forEach(r => { const ok = (!FB.subj.size || FB.subj.has(r.m.subject)) && has(FB.stage, r.m.stage) && has(FB.layer, r.m.layer) && (!tq || r.t.includes(tq)); r.tr.hidden = !ok; if (ok) k++; });
+  tn.textContent = `${k}/${trows.length}`;
+}
+const tchip = (set, v) => { const b = el('button', 'fchip', v); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+  b.onclick = () => { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); on ? set.add(v) : set.delete(v); tableFilter(); }; return b; };
+const tgrp = (name, list, set) => { if (!list.length) return; tfbar.append(el('span', 'gl', name)); list.forEach(v => tfbar.append(tchip(set, v))); };
+tfbar.append(tn);
+tgrp('과목', ['국어', '수학', '영어', '세계지리', '사회문화'].filter(s => methods.some(m => m.subject === s)), FB.subj);
+tgrp('단계', stages.filter(s => s !== '(단계 없음)'), FB.stage);
+tgrp('종류', uniq(methods.flatMap(m => m.layer || [])), FB.layer);
+tfbar.append(btn('조건 지우기', () => { FB.subj.clear(); FB.stage.clear(); FB.layer.clear(); tfbar.querySelectorAll('[aria-pressed]').forEach(b => b.setAttribute('aria-pressed', 'false')); tableFilter(); }, 'fchip'));
+tfbar.append(btn('인쇄', () => print(), 'fchip'));
+vb.querySelectorAll('th button').forEach(b => { b.onclick = () => { const by = b.dataset.s; tsort = { by, dir: tsort.by === by ? -tsort.dir : 1 }; tableSort(); }; });
+vb.addEventListener('click', e => { const tr = e.target.closest('tr[data-id]'); if (!tr) return; select(tr.dataset.id, 'stay'); tr.classList.add('on'); });
+tableSort(); tableFilter();
+
+/* ---- View T: 구조 트리 — METHOD → 과목 → (과목마다 나눈 기준) → 카드. Node = { key, name, kind root|subj|grp|type, crit 「기준: …」, ox O|X,
+   children, cards (ids: the 하단 노드 stack), gap (빈 곳 text) }. 국어 · 사회문화 · 영어 split by G.types (영역 → 세부 영역 → 유형, cards in the type's order);
+   수학 by 갈래 then 풀이 단계 (코어테마 = ct_unit, folded); any other subject by 「외워 둘 사실인가」 O/X then 종류. ---- */
+const vt = $('#vt'), vtZ = $('#vt-z'), vtD = $('#vt-d'), tsbar = $('#tsbar');
+const CW = 184, PITCH = 198, GAPY = 62, PAD = 28;   // column width · column pitch · row gap (caption + bus) · outer margin
+const tnode = (key, name, o) => Object.assign({ key, name, children: [] }, o);
+const natural = (a, b) => a.localeCompare(b, 'ko', { numeric: true });
+const methodsOf = s => methods.filter(m => m.subject === s.label).sort((a, b) => natural(a.id, b.id));
+const strip = (name, pre) => name.startsWith(pre + ' — ') ? name.slice(pre.length + 3) : name;
+function typeTree(s) {
+  const t = tnode(s.id, s.label, { kind: 'subj', crit: '기준: 영역', path: '영역 → 문항 유형 → 카드' }), area = new Map(), sub = new Map(), used = new Set();
+  TYPES[s.label].types.forEach(ty => {
+    const [top, ...rest] = (ty['영역'] || '기타').split(' · '), sn = rest.join(' · ');
+    if (!area.has(top)) { const a = tnode(`${s.id}/${top}`, top, { kind: 'grp', crit: '기준: 문항 유형' }); area.set(top, a); t.children.push(a); }
+    let p = area.get(top);
+    if (sn) {
+      const k = top + '/' + sn;
+      if (!sub.has(k)) { sub.set(k, tnode(`${s.id}/${k}`, sn, { kind: 'grp', crit: '기준: 문항 유형' })); p.children.push(sub.get(k)); p.crit = top === '문학' ? '기준: 갈래' : '기준: 세부 영역'; t.path = '영역 → 세부 영역 → 문항 유형 → 카드'; }
+      p = sub.get(k);
+    }
+    const ids = uniq((ty['카드'] || []).filter(id => byId.has(id))); ids.forEach(id => used.add(id));
+    p.children.push(tnode(`${s.id}/${ty.id}`, strip(ty['이름'] || ty.id, sn || top), { kind: 'type', cards: ids, gap: ty['빈 곳'] }));
+  });
+  // 「문장에 보이는 신호 말」 (국어 독서): cards switched on by passage sentences, not by 발문 — the entry page's question node and its labelled edges
+  area.forEach((a, top) => {
+    const pg = pages.find(p => p.page === `${s.label} ${top}`), sq = pg && (pg.nodes || []).find(n => n.type === 'question' && /문장에 보이는 신호/.test(n.text || ''));
+    if (!sq) return;
+    const sig = tnode(`${a.key}/신호`, sq.text.replace(/은?\s*\?$/, ''), { kind: 'grp', crit: '기준: 신호 말' });
+    (pg.edges || []).filter(e => e.from === sq.id).forEach((e, i) => {
+      const n = (pg.nodes || []).find(x => x.id === e.to); if (!n) return;
+      const ids = uniq((n.cards || []).map(c => c.card).filter(id => byId.has(id))); ids.forEach(id => used.add(id));
+      sig.children.push(tnode(`${sig.key}/${i}`, e.label || n.text, { kind: 'type', cards: ids }));
+    });
+    a.children = [tnode(`${a.key}/발문`, '발문 유형', { kind: 'grp', crit: '기준: 문항 유형', children: a.children }), sig];
+    a.crit = '기준: 카드를 켜는 곳';
+  });
+  // cards no 유형 points to: under their 영역 (from the 갈래 name), else under the 과목
+  const left = new Map();
+  methodsOf(s).filter(m => !used.has(m.id)).forEach(m => { const top = ((byId.get(m.branch) || {}).label || '').split('·')[0].trim(); if (!left.has(top)) left.set(top, []); left.get(top).push(m.id); });
+  left.forEach((ids, top) => { const p = area.get(top) || t; p.children.push(tnode(`${p.key}/없음`, '유형에 안 걸림', { kind: 'type', cards: ids, gap: '어느 문항 유형에도 연결되지 않은 카드' })); });
+  return t;
+}
+function branchTree(s) {
+  const t = tnode(s.id, s.label, { kind: 'subj', crit: '기준: 갈래', path: '갈래 → 풀이 단계 → 카드' });
+  of(s.id, 'branch').sort((a, b) => (/^일반론/.test(b.label) - /^일반론/.test(a.label)) || a.order - b.order).forEach(br => {
+    const units = of(br.id, 'ct_unit'), ms = methods.filter(m => m.branch === br.id).sort((a, b) => natural(a.id, b.id));
+    if (units.length) {   // 코어테마: 범위 (공통 · 미적분) → 단원 → 표의 행; folded by default
+      const b = tnode(br.id, br.label, { kind: 'grp', crit: '기준: 범위', fold: true }), gs = new Map();
+      units.forEach(u => {
+        const gk = u.group || '-';
+        if (!gs.has(gk)) { gs.set(gk, tnode(`${br.id}/${gk}`, (u.group_label || gk).split(' — ')[0], { kind: 'grp', crit: '기준: 단원' })); b.children.push(gs.get(gk)); }
+        const rows = of(u.id, 'ct_row').map(r => r.id);
+        gs.get(gk).children.push(tnode(u.id, u.label.replace(/\s*\([^)]*\)\s*$/, '') || u.label, { kind: 'type', ct: true, cards: rows, gap: rows.length ? null : '이 단원에 옮긴 행이 없음' }));
+      });
+      t.children.push(b);
+    } else if (ms.length >= 4) {   // all five 풀이 단계, so an empty 단계 shows as a gap; a multi-단계 card sits under each of its 단계 (×n)
+      t.children.push(tnode(br.id, br.label, { kind: 'grp', crit: '기준: 풀이 단계', children: stages.map(st => tnode(`${br.id}/${st}`, st, { kind: 'type', cards: ms.filter(m => (m.stage || []).includes(st)).map(m => m.id) })) }));
+    } else t.children.push(tnode(br.id, br.label, { kind: 'type', cards: ms.map(m => m.id) }));
+  });
+  return t;
+}
+function layerTree(s) {   // 세계지리: 단계 split is 28/7 (one side all ③), 종류 split is 23/9/3 — 사실 (외울 것) vs 푸는 법 is the real 질적 차이, so O/X first
+  const ms = methodsOf(s), t = tnode(s.id, s.label, { kind: 'subj' });
+  if (!ms.length) { t.cards = []; t.path = '아직 카드 없음'; return t; }
+  const rest = ms.filter(m => !isFact(m)), NONE = '(종류 없음)', ly = m => (m.layer || []).length ? m.layer : [NONE];
+  Object.assign(t, { crit: '기준: 외워 둘 사실인가', path: '외울 사실인가 (O/X) → 단원 · 종류 → 카드' });
+  // 사실 side splits by the 마스터본 단원 each card sits in (parent section, in master heading order) so 23 facts don't stand in one column
+  const facts = ms.filter(isFact), secOf = m => byId.get(m.parent), secs = uniq(facts.map(secOf)).sort((a, b) => rowKey(a) - rowKey(b));
+  const secName = x => x && x.kind === 'section' ? cleanLabel(x.label).text.replace(/^세계지리 마스터본.*$/, '단원 밖 (총론)') : '단원 없음';
+  t.children.push(tnode(`${s.id}/O`, '사실 — 외울 것', { kind: 'grp', ox: 'O', crit: '기준: 단원',
+    children: secs.map(x => tnode(`${s.id}/O/${x ? x.id : '-'}`, secName(x), { kind: 'type', cards: facts.filter(m => secOf(m) === x).map(m => m.id) })) }));
+  t.children.push(tnode(`${s.id}/X`, '푸는 법', { kind: 'grp', ox: 'X', crit: '기준: 종류', children: uniq(rest.flatMap(ly)).map(l => tnode(`${s.id}/X/${l}`, l, { kind: 'type', cards: rest.filter(m => ly(m).includes(l)).map(m => m.id) })) }));
+  return t;
+}
+const SUBJ = of(null, 'subject');
+const TREE = tnode('root', 'METHOD', { kind: 'root', crit: '기준: 과목', path: '과목 → (과목마다 다른 기준) → 카드',
+  children: SUBJ.map(s => TYPES[s.label] ? typeTree(s) : of(s.id, 'branch').length > 1 ? branchTree(s) : layerTree(s)) });
+(function prep(n, subj) {   // subject hue · unique card ids · 코어테마 rows · per-subject placement counts (×n)
+  n.subj = n.kind === 'subj' ? n.name : subj; n.ids = new Set(); n.nct = 0;
+  if (n.kind === 'subj') n.occ = new Map();
+  (n.cards || []).forEach(id => { if (byId.get(id).kind === 'ct_row') n.nct++; else n.ids.add(id); });
+  n.children.forEach(c => { prep(c, n.subj); c.ids.forEach(i => n.ids.add(i)); n.nct += c.nct; });
+})(TREE);
+TREE.children.forEach(s => (function walk(n) { (n.cards || []).forEach(id => s.occ.set(id, (s.occ.get(id) || 0) + 1)); n.children.forEach(walk); })(s));
+const subjNode = name => TREE.children.find(c => c.name === name);
+const countText = n => n.ct || (n.nct && !n.ids.size) ? `행 ${n.nct}` : `카드 ${n.ids.size}` + (n.nct ? ` · 코어테마 행 ${n.nct}` : '');
+const vtCompact = new Set();   // trees that started with card stacks folded: 유형 leaves listed in one column under their parent
+const vtWrap = new Map();   // per tree: how many bands the top split wraps into
+const vtCol = new Map();   // per tree: stack column height limit (px) — a tall card / 유형 column wraps into side-by-side columns so a landscape screen fills across (10-08)
+const vtKref = new Map();   // per tree: its starting fit scale, fixed once so folding never resizes the type
+let vtKey = null, vtT = d3.zoomIdentity, VW = 0, VH = 0, vtEls = new Map(), legShow = innerWidth >= 700 && innerHeight >= 900;   // landscape iPad: legend starts folded so the tree gets the height
+const vtFolds = new Map();   // per tree (전체 / 과목): keys of folded nodes
+const vtZoom = d3.zoom().scaleExtent([0.1, 2]).clickDistance(12).on('zoom', e => { vtT = e.transform; vtD.style.transform = `translate(${vtT.x}px,${vtT.y}px) scale(${vtT.k})`; });
+const svT = d3.select(vtZ).call(vtZoom).on('dblclick.zoom', null);
+const vtRoot = () => vtKey === '전체' ? TREE : subjNode(vtKey) || TREE;
+const vtW = () => vtZ.clientWidth - (!sheet.hidden && wide() ? sheet.offsetWidth : 0);
+const vtH = () => vtZ.clientHeight - (!sheet.hidden && !wide() ? sheet.offsetHeight : 0);
+function folds() {   // start: 전체 = every 과목 folded; a 과목 = all open except 코어테마
+  if (!vtFolds.has(vtKey)) { const f = new Set(); (function walk(n) { if (n.fold || (vtKey === '전체' && n.kind === 'subj')) f.add(n.key); n.children.forEach(walk); })(vtRoot()); vtFolds.set(vtKey, f); }
+  return vtFolds.get(vtKey);
+}
+['전체', ...TREE.children.map(c => c.name)].forEach(k => {
+  const b = el('button', 'fchip', k); b.type = 'button'; b.dataset.s = k; b.setAttribute('aria-pressed', 'false');
+  b.append(el('small', '', String((k === '전체' ? TREE : subjNode(k)).ids.size))); b.onclick = () => setTree(k); tsbar.append(b);
+});
+function setTree(k) {
+  vtKey = k === '전체' || subjNode(k) ? k : '전체'; V2.ts = vtKey; saveV2();
+  tsbar.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s === vtKey));
+  treeHead(); drawTree();
+  if (!vtKref.has(vtKey)) {
+    const fit = () => Math.min(1, (vtW() - 16) / VW, (vtH() - 16) / VH); let k = fit();
+    // first open: if the stacks-open tree would start below 0.55, fold every card stack and list the 유형 in columns, so the levels down to 유형 read
+    if (k < 0.55) { const F = folds(); stackKeys().forEach(key => F.add(key)); vtCompact.add(vtKey); vtWrap.delete(vtKey); drawTree(); k = Math.min(1, (vtW() - 16) / VW); }
+    vtKref.set(vtKey, k); if (k < 0.9) drawTree();
+  }
+  vtFit(false, vtCompact.has(vtKey)); route();
+}
+function stackKeys() { const ks = []; (function walk(n) { if (n.cards && !n.children.length && n.cards.length) ks.push(n.key); n.children.forEach(walk); })(vtRoot()); return ks; }
+function treeShow() { if (!vtKey) setTree(V2.ts || '전체'); else if (!VW) { drawTree(); vtFit(false, vtCompact.has(vtKey)); } }
+function treeHead() {
+  const R = vtRoot(), h = $('#vt-h'); h.textContent = '';
+  h.append(el('h1', '', R.kind === 'root' ? '내 방법론은 이렇게 나뉜다' : `${R.name}은 이렇게 나뉜다`));
+  const types = []; (function walk(n) { if (n.kind === 'type' && !n.ct) types.push(n); n.children.forEach(walk); })(R);
+  const meta = el('div', 'meta'), nEmpty = types.filter(t => !t.cards.length).length;
+  meta.append(el('span', 'pn', R.path || ''), el('span', 'cnt', R.kind === 'root' ? `과목 ${R.children.length} · 카드 ${R.ids.size} · 코어테마 행 ${R.nct}` : `카드 ${R.ids.size} · 맨 아래 묶음 ${types.length} · 카드 없는 묶음 ${nEmpty}`));
+  const all = el('button', 'sm', '카드 모두 접기'); all.type = 'button'; all.id = 'vt-all';
+  all.onclick = () => { const F = folds(), ks = stackKeys(), anyShut = ks.some(k => F.has(k)); ks.forEach(k => anyShut ? F.delete(k) : F.add(k)); drawTree(); vtFit(true, vtCompact.has(vtKey)); };
+  const lg = el('button', 'sm', '보는 법'); lg.type = 'button'; lg.setAttribute('aria-pressed', legShow); meta.append(all, lg);
+  const leg = el('div', 'vt-leg'); leg.hidden = !legShow;
+  const item = (...xs) => { const s = el('span'); xs.forEach(x => s.append(x)); leg.append(s); };
+  const ox = t => el('span', 'tox', t);
+  item(el('i', 'lg-line'), '실선 = 나눔 (위가 아래를 포함)'); item(el('span', 'tcap', '기준: …'), '= 나눈 기준'); item(ox('O'), ox('X'), '= 있다 / 없다로 나눔');
+  item(el('i', 'lg-gap'), '점선 상자 = 카드 없음'); item(el('span', 'lg-x', '×n'), '= 여러 곳에 쓰임'); item(el('i', 'lg-dot'), '빨간 점 = 최근 14일 오답 있음');
+  item('상자 누르기 = 접기 · 펼치기 · 카드 누르기 = 카드 보기');
+  lg.onclick = () => { legShow = !legShow; leg.hidden = !legShow; lg.setAttribute('aria-pressed', legShow); root.style.setProperty('--barh', bar.offsetHeight + 'px'); };
+  h.append(meta, leg);
+}
+function drawTree() {
+  const R = vtRoot(), F = folds(), sn = R.kind === 'root' ? null : R, kr = vtKref.get(vtKey) || 1;
+  vtD.textContent = ''; vtEls = new Map();
+  const open = n => !F.has(n.key);
+  // compact trees (started with stacks folded): a node whose children are all 유형 leaves, or small groups of them, lists them as an indented column
+  // (like the cards) instead of spreading them sideways — up to 16 rows, or any number of small groups (≤ 6 rows each); else its children each get their own column
+  const rows = n => n.kind === 'type' ? 1 : 1 + d3.sum(n.children, rows);
+  const listable = c => (c.kind === 'type' && !c.children.length) || (c.kind === 'grp' && c.children.length > 0 && c.children.every(listable));
+  const listKids = n => vtCompact.has(vtKey) && n.kind === 'grp' && open(n) && n.children.length && n.children.every(listable) && (d3.sum(n.children, rows) <= 16 || n.children.every(c => rows(c) <= 6)) ? n.children : null;
+  // every visible leaf gets phantom children down to the deepest level: d3.tree then keeps that whole column free for the leaf's card stack
+  const h0 = d3.hierarchy(R, n => open(n) && n.children.length && !listKids(n) ? n.children : null), pad = new Map();
+  h0.leaves().forEach(d => pad.set(d.data, h0.height - d.depth));
+  const ph = (k, of) => k > 0 ? [{ ph: k - 1, of }] : null;   // of: the leaf a phantom reserves room for (its column span)
+  const h = d3.hierarchy(R, n => n.ph != null ? ph(n.ph, n.of) : pad.has(n) ? ph(pad.get(n), n) : listKids(n) ? null : n.children);
+  const span = new Map(), spanOf = d => span.get(d.data.of || d.data) || 1;
+  const tree = () => d3.tree().nodeSize([PITCH, 1]).separation((a, b) => (spanOf(a) + spanOf(b)) / 2 * (a.parent === b.parent ? 1 : 1.15))(h);
+  tree();
+  const real = h.descendants().filter(d => d.data.ph == null);
+  const svg = svgEl('svg'); vtD.append(svg);
+  // a wide tree fits at a small scale: a box over several columns grows (width up to its own column span, so it never reaches a neighbour's)
+  // and its name is set at about 13 screen px for this tree's starting fit scale (vtKref): the upper levels stay readable while the card stacks read as shape
+  const BASE = { root: 19, subj: 17, grp: 14.5, type: 13 };
+  const est = s => [...s].reduce((a, ch) => a + (/[ㄱ-힣]/.test(ch) ? 1 : 0.55), 0);
+  const roomOf = d => { const xs = d.leaves().map(l => l.x); return 2 * Math.min(d.x - Math.min(...xs), Math.max(...xs) - d.x) + CW - 14; };
+  const grows = d => kr < 0.9 && (d.children || listKids(d.data)) && d.data.kind !== 'type';
+  const leaf = (cls, text, w) => { const b = el('button', cls, text); b.type = 'button'; b.style.width = w + 'px'; vtD.append(b); return b; };
+  const items = real.map(d => {
+    const n = d.data, b = el('button', `tn k-${n.kind}`), more = n.children.length || (n.cards && n.cards.length); b.type = 'button'; b.dataset.key = n.key;
+    if (n.subj) b.style.setProperty('--sc', `var(--c-${n.subj}, var(--c-범과목))`);
+    const nm = el('span', 'nm', n.name), ct = el('span', 'ct', countText(n) + (n.kind === 'type' && n.cards ? (open(n) ? ' ▾' : ' ▸') : '')); b.append(nm, ct);
+    if (more) { b.setAttribute('aria-expanded', open(n)); if (!open(n)) b.classList.add('shut'); }
+    if (n.kind === 'type' && n.cards && !n.cards.length) b.classList.add('empty');
+    if (n.kind === 'subj' && !open(n) && n.path) b.append(el('span', 'pth', n.path));
+    if (listKids(n) && n.crit) b.append(el('span', 'pth', n.crit));   // a listed split has no stem to hang its 「기준」 on: it goes inside the box
+    let w = CW, cf = 11.5, rm = CW;
+    if (grows(d)) {   // the largest size the name fits at on two lines within its room
+      const room = roomOf(d), base = BASE[n.kind] || 13, e = est(n.name), fs = Math.max(base, Math.min(13 / kr, 88, (room - 10) / (e / 2 + 0.8)));
+      if (fs > base) { rm = room; w = Math.max(CW, Math.min(room, (e + 0.8) * fs + 10)); nm.style.fontSize = fs + 'px'; ct.style.fontSize = Math.max(11.5, fs * 0.5) + 'px'; b.style.padding = `${fs * 0.3}px ${fs * 0.4}px`; b.style.borderRadius = Math.max(12, fs * 0.4) + 'px'; cf = Math.max(11.5, fs * 0.5); }
+    }
+    b.style.width = w + 'px'; vtD.append(b);
+    const it = { d, n, b, w, cf, rm, stack: [] };
+    const occ = (sn || subjNode(n.subj) || { occ: new Map() }).occ;
+    const cardsInto = (t, ind) => {   // the 하단 노드 stack of t: one column, indented ind px
+      t.cards.forEach(id => {
+        const m = byId.get(id), c = leaf('tc', null, CW - ind), top = el('span', 'tid', m.kind === 'ct_row' ? id.split('/')[0] : id), k = occ.get(id) || 1; c.dataset.card = id;
+        if (k > 1) { const xm = el('span', 'tx', `×${k}`); xm.title = `이 과목 안 ${k}곳에 쓰임`; top.append(xm); }
+        c.append(top, el('span', 'tl', m.kind === 'ct_row' ? m.label : cleanLabel(m.label).text));
+        const hh = m.kind === 'method' && hOf.get(id); if (hh && hh.d > 0) { c.classList.add('hot'); c.title = heatLine(hh); }
+        if (!vtEls.has(id)) vtEls.set(id, []); vtEls.get(id).push(c); it.stack.push({ c, ind });
+      });
+      const gapNote = t.gap && t.gap !== 'none' ? t.gap : '';
+      if (!t.cards.length) { const g = leaf('tc tgap', t.ct ? '행 없음' : '카드 없음', CW - ind); g.__gap = { n: t, text: gapNote || '이 자리에 카드가 아직 없음' }; it.stack.push({ c: g, ind }); }
+      else if (/^일부/.test(gapNote)) { const g = leaf('tc tgap part', '일부 빈 곳', CW - ind); g.__gap = { n: t, text: gapNote }; it.stack.push({ c: g, ind }); }
+    };
+    if (!(d.children || []).some(c => c.data.ph == null) && open(n)) {
+      const boxInto = (t, ind) => {   // a listed 유형 or group: its own box, one column step in
+        const nc = t.cards ? t.cards.length : 0, more = t.children.length || nc;
+        const tb = leaf(`tn k-${t.kind}${t.cards && !nc ? ' empty' : ''}${t.children.length && !open(t) ? ' shut' : ''}`, null, CW - ind); tb.dataset.key = t.key;
+        tb.style.setProperty('--sc', `var(--c-${t.subj}, var(--c-범과목))`);
+        tb.append(el('span', 'nm', t.name), el('span', 'ct', countText(t) + (nc ? (open(t) ? ' ▾' : ' ▸') : '')));
+        if (t.children.length && t.crit && open(t)) tb.append(el('span', 'pth', t.crit));
+        if (more) tb.setAttribute('aria-expanded', open(t));
+        if (t.cards && !nc) { tb.classList.add('tgap'); tb.__gap = { n: t, text: t.gap && t.gap !== 'none' ? t.gap : '이 자리에 카드가 아직 없음' }; }   // the dashed box is the gap itself
+        it.stack.push({ c: tb, ind });
+      };
+      const listInto = (t, ind) => t.children.forEach(c => { boxInto(c, ind); if (open(c)) c.kind === 'type' ? (c.cards.length && cardsInto(c, ind + 14)) : listInto(c, ind + 14); });
+      if (listKids(n)) listInto(n, 14);
+      else if (n.cards) cardsInto(n, 14);
+    }
+    return it;
+  });
+  items.forEach(it => { it.h = it.b.offsetHeight; it.sh = it.stack.map(e => e.c.offsetHeight); it.w0 = it.w; it.blocks = [];
+    it.stack.forEach((e, i) => { if (e.ind === 14 || !it.blocks.length) it.blocks.push([]); it.blocks[it.blocks.length - 1].push(i); }); });   // a column may only break before a top-level entry, so a listed group keeps its cards
+  const greedy = (it, lim) => {   // fill columns no taller than lim, in order
+    const cols = []; let cur = null, ch = 0, top = 0;
+    it.blocks.forEach(bk => { const bh = d3.sum(bk, i => it.sh[i]) + 6 * (bk.length - 1); if (!cur || ch + 6 + bh > lim) { cols.push(cur = []); ch = 12 + bh; } else ch += 6 + bh; top = Math.max(top, ch); cur.push(...bk); });
+    return { cols, top };
+  };
+  const apply = lim => items.forEach(it => {   // split each stack into columns no taller than lim, then even them out (same column count, lowest height); the box widens over its columns
+    let g = greedy(it, lim); const c = g.cols.length;
+    if (c > 1) for (let L = (d3.sum(it.sh) + 6 * it.sh.length) / c; ; L += 12) { const e = greedy(it, L); if (e.cols.length <= c) { g = e; break; } }
+    it.cols = g.cols; it.sH = g.top; span.set(it.n, g.cols.length || 1); it.w = g.cols.length > 1 ? Math.max(it.w0, g.cols.length * PITCH - (PITCH - CW)) : it.w0;
+  });
+  const itOf = new Map(items.map(it => [it.d, it])), kidsOf = d => (d.children || []).filter(c => c.data.ph == null), rootKids = kidsOf(h), capH = it => (it.cf - 11.5) * 1.4;
+  // wide trees wrap: the root's children split into r bands stacked top to bottom, joined to the root by a trunk down the left margin (r = best fit, fixed per tree)
+  function layout(r) {
+    const groups = [];
+    if (r > 1) {
+      const tot = d3.sum(rootKids, c => c.leaves().length); let cur = [], acc = 0;
+      rootKids.forEach((c, i) => { cur.push(c); acc += c.leaves().length; if (groups.length < r - 1 && acc >= tot * (groups.length + 1) / r && i < rootKids.length - 1) { groups.push(cur); cur = []; } });
+      groups.push(cur);
+    } else groups.push(rootKids);
+    const T = groups.length > 1 ? 30 : 0, pos = new Map(), ri = itOf.get(h);
+    let y = PAD + ri.h + GAPY + capH(ri), right = 0;
+    groups.forEach(g => {
+      const ds = g.flatMap(c => c.descendants()).filter(d => d.data.ph == null); if (!ds.length) return;
+      const sx = PAD + T - d3.min(ds, d => d.x - itOf.get(d).w / 2), rowH = [], capX = [], top = [];
+      ds.forEach(d => { const it = itOf.get(d); rowH[d.depth] = Math.max(rowH[d.depth] || 0, it.h); capX[d.depth] = Math.max(capX[d.depth] || 0, capH(it)); });
+      top[1] = y; for (let k = 2; k < rowH.length; k++) top[k] = top[k - 1] + rowH[k - 1] + GAPY + capX[k - 1];
+      let bottom = y;
+      ds.forEach(d => { const it = itOf.get(d), p = { x: d.x + sx, y: top[d.depth] }; pos.set(d, p); bottom = Math.max(bottom, p.y + it.h + it.sH); right = Math.max(right, p.x + it.w / 2); });
+      y = bottom + GAPY + 24;
+    });
+    const g0 = groups[0].filter(c => pos.has(c)), rx = g0.length ? (pos.get(g0[0]).x + pos.get(g0[g0.length - 1]).x) / 2 : PAD + ri.w / 2;
+    pos.set(h, { x: Math.max(rx, PAD + T + ri.w / 2), y: PAD }); right = Math.max(right, pos.get(h).x + ri.w / 2);
+    return { groups, pos, VW: right + PAD, VH: (rootKids.length ? y - GAPY - 24 : PAD + ri.h) + PAD + 56 };   // bottom room: the last card clears the HUD / fit button
+  }
+  if (!vtWrap.has(vtKey) || !vtCol.has(vtKey)) {   // best (column limit, bands) pair for this screen: the largest whole-tree fit; fewer columns / bands win ties
+    apply(Infinity); const tall = d3.max(items, it => it.sH) || 0; let best = -1, pick = [Infinity, 1];
+    [Infinity, 900, 700, 540, 420, 320, 240].filter(l => l === Infinity || l < tall).forEach(lim => {
+      apply(lim); tree();
+      for (let i = 1; i <= Math.max(1, Math.min(4, rootKids.length)); i++) { const L = layout(i), k = Math.min(1, (vtW() - 16) / L.VW, (vtH() - 16) / L.VH); if (k > best + (i > pick[1] ? 0.1 : 0.02)) { best = k; pick = [lim, i]; } }   // another band must pay for itself: one row reads as a tree
+    });
+    vtCol.set(vtKey, pick[0]); vtWrap.set(vtKey, pick[1]);
+  }
+  apply(vtCol.get(vtKey)); tree();
+  const L = layout(vtWrap.get(vtKey)), P = d => L.pos.get(d);
+  let dp = '';
+  items.forEach(it => {
+    const { d, n, b } = it, p = P(d), x = p.x - CW / 2, pb = p.y + it.h;
+    b.style.left = p.x - it.w / 2 + 'px'; b.style.top = p.y + 'px'; b.style.width = it.w + 'px';
+    const kids = kidsOf(d);
+    if (kids.length) {   // elbow: stem, bus, each child's top; 「기준: …」 sits on the stem under the box; O/X sits where a child's stem leaves the bus
+      const bands = d === h && L.groups.length > 1 ? L.groups.map(g => g.filter(c => kids.includes(c))).filter(g => g.length) : [kids], tx = PAD + 8;
+      bands.forEach((g, gi) => {
+        const cy = P(g[0]).y, bus = cy - 22, xs = g.map(c => P(c).x), lo = bands.length > 1 ? tx : Math.min(p.x, ...xs);
+        if (!gi) dp += `M${p.x} ${pb}V${bus}`;
+        else dp += `M${tx} ${P(bands[gi - 1][0]).y - 22}V${bus}`;   // trunk: band to band down the left margin
+        dp += `M${lo} ${bus}H${Math.max(gi ? lo : p.x, ...xs)}` + xs.map(cx => `M${cx} ${bus}V${cy}`).join('');
+        g.forEach((c, i) => { if (!c.data.ox) return; const o = el('div', 'tox', c.data.ox); o.style.left = xs[i] + 'px'; o.style.top = bus + 'px'; vtD.append(o); });
+      });
+      if (n.crit) { const c = el('div', 'tcap', n.crit); c.style.left = p.x + 'px'; c.style.top = pb + 6 + 'px'; if (it.cf > 11.5) { c.style.fontSize = Math.max(11.5, Math.min(it.cf, (it.rm - 16) / est(n.crit))) + 'px'; c.style.lineHeight = '1.4'; c.style.maxWidth = it.rm + 'px'; } vtD.append(c); }
+    } else if (it.stack.length) {   // the stack hangs from the box's left edge: spine plus one tick per card
+      // indented column: each entry hangs from a spine 8 px left of it, which starts at its parent's bottom (or its previous sibling's tick)
+      // a wrapped stack: one such column per PITCH, side by side under the widened box, each with its own spine from the box's bottom
+      const W = it.cols.length * PITCH - (PITCH - CW);
+      it.cols.forEach((col, j) => {
+        const x = p.x - W / 2 + j * PITCH; let cy = pb + 12; const anc = { 14: pb };
+        col.forEach(i => {
+          const e = it.stack[i], h = it.sh[i], mid = cy + h / 2, sx = x + e.ind - 8; e.c.style.left = x + e.ind + 'px'; e.c.style.top = cy + 'px';
+          dp += `M${sx} ${anc[e.ind] != null ? anc[e.ind] : mid}V${mid}H${x + e.ind}`; anc[e.ind] = mid; anc[e.ind + 14] = cy + h;
+          cy += h + 6;
+        });
+      });
+    }
+  });
+  VW = L.VW; VH = L.VH;
+  vtD.style.width = VW + 'px'; vtD.style.height = VH + 'px'; svg.setAttribute('width', VW); svg.setAttribute('height', VH);
+  const pth = svgEl('path'); pth.setAttribute('d', dp); svg.append(pth);
+  if (selEl && vtEls.has(selEl.dataset.id)) hiTree(selEl.dataset.id);
+  const all = $('#vt-all'); if (all) all.textContent = stackKeys().some(k => F.has(k)) ? '카드 모두 펼치기' : '카드 모두 접기';
+}
+function vtFit(anim, byWidth) {   // whole tree (or, for a compact tree's start, its width), never above 1, top-aligned (the tree reads from the top)
+  if (!VW || !vtZ.clientWidth) return;
+  const w = vtW(), kw = Math.min(1, (w - 16) / VW), kh = (vtH() - 16) / VH, k = byWidth && Math.min(kw, kh) < 0.45 ? kw : Math.min(kw, kh);   // a compact tree fits whole when that stays readable
+  vtZoom.scaleExtent([Math.min(0.25, k), 2]);
+  const t = d3.zoomIdentity.translate(Math.max(8, (w - VW * k) / 2), 8).scale(k);
+  (anim && DUR && !document.hidden) ? svT.transition().duration(DUR).call(vtZoom.transform, t) : svT.call(vtZoom.transform, t);
+}
+function vtCenter(e) {   // pan (zooming in to ≥ 0.8) so the element sits mid-screen in the uncovered area
+  const r = e.getBoundingClientRect(), d = vtD.getBoundingClientRect(), k = Math.max(vtT.k, 0.8);
+  const cx = (r.left + r.width / 2 - d.left) / vtT.k, cy = (r.top + r.height / 2 - d.top) / vtT.k, t = d3.zoomIdentity.translate(vtW() / 2 - cx * k, vtH() / 2 - cy * k).scale(k);
+  (DUR && !document.hidden) ? svT.transition().duration(DUR).call(vtZoom.transform, t) : svT.call(vtZoom.transform, t);
+}
+const hiTree = id => { document.querySelectorAll('.tc.on').forEach(c => c.classList.remove('on')); (vtEls.get(id) || []).forEach(c => c.classList.add('on')); };
+function toggleNode(key) {   // fold / unfold, keeping the tapped box where it was on screen
+  const F = folds(), at = () => vtD.querySelector(`.tn[data-key="${CSS.escape(key)}"]`).getBoundingClientRect();
+  const a = at(), opening = F.has(key); opening ? F.delete(key) : F.add(key); drawTree(); const b = at();
+  svT.call(vtZoom.translateBy, (a.left - b.left) / vtT.k, (a.top - b.top) / vtT.k);
+  const n = (function find(x) { if (x.key === key) return x; for (const c of x.children) { const f = find(c); if (f) return f; } return null; })(vtRoot());
+  if (opening && n && n.cards && !n.children.length) vtShowStack(key, n.cards);
+}
+function vtShowStack(key, ids) {   // zoom so a just-opened 유형 and its cards fill the view (at least readable size, top anchored)
+  const els_ = [vtD.querySelector(`.tn[data-key="${CSS.escape(key)}"]`), ...ids.map(id => (vtEls.get(id) || []).find(c => c.isConnected))].filter(Boolean);
+  const d = vtD.getBoundingClientRect(), rs = els_.map(e => e.getBoundingClientRect());
+  const l = (Math.min(...rs.map(r => r.left)) - d.left) / vtT.k, t = (Math.min(...rs.map(r => r.top)) - d.top) / vtT.k, w = (Math.max(...rs.map(r => r.right)) - d.left) / vtT.k - l, h = (Math.max(...rs.map(r => r.bottom)) - d.top) / vtT.k - t;
+  const k = Math.max(Math.min(1, (vtW() - 40) / w, (vtH() - 40) / h), 0.8);
+  const tr = d3.zoomIdentity.translate(vtW() / 2 - (l + w / 2) * k, 20 - t * k).scale(k);
+  (DUR && !document.hidden) ? svT.transition().duration(DUR).call(vtZoom.transform, tr) : svT.call(vtZoom.transform, tr);
+}
+vtZ.addEventListener('click', e => {
+  const g = e.target.closest('.tgap'); if (g) { const n = g.__gap.n; openSheet({ kind: 'gap', label: n.name, gap: g.__gap.text, where: `${n.subj || ''} 구조 · ${g.textContent}` }); return; }
+  const c = e.target.closest('.tc'); if (c) { const id = c.dataset.card; select(id, 'stay'); hiTree(id); const r = c.getBoundingClientRect(); if (wide() && r.right > innerWidth - sheet.offsetWidth) vtCenter(c); return; }
+  const b = e.target.closest('.tn'); if (b) { if (b.hasAttribute('aria-expanded')) toggleNode(b.dataset.key); return; }
+  if (!sheet.hidden) closeSheet();
+});
+
+/* ---- HUD ---- */
+function renderHud(ga) {
+  const m = /^\d{4}-(\d\d)-(\d\d)T(\d\d):(\d\d)/.exec(ga || ''), age = Date.now() - Date.parse(ga), old = Number.isFinite(age) && age > 36 * 36e5;
+  $('#hud-t').textContent = `갱신 ${m ? `${m[1]}-${m[2]} ${m[3]}:${m[4]}` : (ga || '—')}` + (old ? ' · 36시간 지남' : ''); hud.classList.toggle('old', old);
+}
+renderHud(G.generated_at); $('#hud-n').textContent = ` · 노드 ${nodes.length}`;
+window.MAP = { hud: renderHud };   // console hook for the 36 h check
+if ((G.warnings || []).length) { const b = el('button', '', `주의 ${G.warnings.length}`); b.type = 'button'; b.onclick = () => openSheet({ kind: 'warn', label: `주의 ${G.warnings.length}`, list: G.warnings }); hud.append(b); }
+
+/* ---- events ---- */
+view.addEventListener('click', e => {
+  const fn = e.target.closest('.fnode'); if (fn) return openSheet(fn.__flow);
+  const tap = e.target.closest('[data-tap]'), t = e.target.closest('[data-id]');
+  let n = byId.get(tap ? tap.dataset.tap : t ? t.dataset.id : '');
+  // a container's background counts as a tap only at its own band or farther (drill-down); nearer it is blank space
+  if (n && !tap && n.z < band && !['method', 'ct_row', 'page', 'outline'].includes(n.kind)) n = null;
+  if (!n) { if (!sheet.hidden) closeSheet(); return; }
+  if (!tap && (n.kind === 'subject' || n.kind === 'branch')) { if (!sheet.hidden) closeSheet(); return zoomTo(n.id); }   // drill-down, no sheet
+  if (n.kind === 'outline' && n.block && secByBlock.has(n.block)) return select(secByBlock.get(n.block).id, 'zoom');
+  select(n.id);
+});
+$('#sh-x').onclick = closeSheet;
+fitBtn.onclick = () => curView === 't' ? vtFit(true) : curView === 'a' ? vaFit(true) : go(fitT());
+tabsEl.querySelectorAll('button').forEach(b => { b.onclick = () => { V2.t = 1; showView(b.dataset.v); }; });   // V2.t: a view picked since 구조 became the landing view
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (!res.hidden) { res.hidden = true; q.blur(); } else if (!sheet.hidden) closeSheet(); } });
+document.addEventListener('click', e => { if (!bar.contains(e.target)) res.hidden = true; });
+let lastW = innerWidth, lastLand = innerWidth > innerHeight;
+addEventListener('resize', () => { setExtent(); if (curView === 'a') vaFit(); if (curView === 't' && innerWidth !== lastW) { const land = innerWidth > innerHeight; if (land !== lastLand && vtKey) { vtWrap.clear(); vtCol.clear(); drawTree(); } lastLand = land; vtFit(false, vtCompact.has(vtKey)); } lastW = innerWidth; });   // width only: the iPad keyboard must not refit the tree; turning the iPad re-picks columns / bands
+function fromHash() {   // #t/<과목> · #a/<page> · #b · #c · #<node id> → true when the hash chose something
+  const h = hashId(); if (!h) return false;
+  if (h === 't' || h.startsWith('t/')) { const k = h.slice(2); if (k === '전체' || subjNode(k)) V2.ts = k; showView('t'); if (vtKey !== (V2.ts || '전체')) setTree(V2.ts || '전체'); return true; }
+  if (h === 'b' || h === 'c') { showView(h); return true; }
+  if (h === 'a' || h.startsWith('a/')) { const p = h.slice(2); if (pages.some(x => x.page === p)) V2.p = p; showView('a'); if (curPage !== (pageOf(V2.p) || {}).page) setPage(V2.p); return true; }
+  if (els.has(h)) { if (curView !== 'c') { posterInit = true; showView('c'); sv.call(zoom.transform, fitT()); } select(h, 'zoom'); return true; }
+  return false;
+}
+addEventListener('hashchange', fromHash);
+
+/* ---- start ---- */
+setExtent(); setBand(0);
+if (!fromHash()) showView(V2.t && ['t', 'a', 'b', 'c'].includes(V2.v) && (V2.v !== 'a' || pages.length) ? V2.v : 't');
+})();
+</script>

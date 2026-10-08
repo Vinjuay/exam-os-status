@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # 대시보드 산출물만 허용한다. docs/ 통째 허용은 작업 문서 128개가 public 으로 새는 원인이었다(2026-10-02).
-ALLOWED='^(docs/(index\.html|home\.html|trend\.html|history\.ndjson|history-daily\.ndjson|dash/[^/]+)|\.github/|\.gitignore$)'
+ALLOWED='^(docs/(index\.html|home\.html|trend\.html|history\.ndjson|history-daily\.ndjson|dash/[^/]+|map/(index\.html|graph\.js))|\.github/|\.gitignore$)'
 range="${1:-}"
 
 # core.quotepath=false 가 없으면 한글 파일명이 "docs/ANKI_\354\240\225..." 처럼
