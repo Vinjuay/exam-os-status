@@ -311,6 +311,7 @@ button.vchip { cursor: pointer; }
 .tn.k-type .nm { font-size: 13px; }
 .tn.shut { box-shadow: 5px 5px 0 -1.5px var(--card), 5px 5px 0 0 var(--muted); }
 .tn.empty { border-style: dashed; border-color: var(--danger); }
+.tn.refonly { border-style: dashed; }   /* no card yet, but linked material exists */
 .tn.shut::after { content: "+"; position: absolute; right: -9px; bottom: -9px; width: 20px; height: 20px; border-radius: 50%; background: var(--ink); color: var(--ink-fg); font-size: 15px; line-height: 20px; font-weight: 700; }
 .tc { position: absolute; box-sizing: border-box; display: grid; gap: 1px; align-content: start; text-align: left; min-height: 44px; padding: 5px 8px 6px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); color: var(--fg); font-size: 12.5px; line-height: 1.3; }
 .tc .tid { display: flex; align-items: center; gap: 6px; font-size: 10.5px; line-height: 15px; font-weight: 600; color: var(--muted); padding-right: 12px; }
@@ -320,6 +321,8 @@ button.vchip { cursor: pointer; }
 .tc.on { outline: 3px solid var(--ink); outline-offset: 2px; }
 .tc.tgap { align-content: center; text-align: center; background: transparent; border: 1.5px dashed var(--danger); color: var(--danger); font-weight: 700; }
 .tc.tgap.part { border-color: var(--muted); color: var(--muted); font-weight: 600; }
+.tc.tref { background: transparent; border-color: var(--muted); }   /* 노션 페이지 · 마스터본 목차 linked to a 유형 (type/*.json 「자료」) */
+.tc.tgap.tout { align-content: start; text-align: left; border-color: var(--muted); color: var(--muted); font-weight: 500; }   /* material outside Notion METHOD (「밖 자료」) — the map cannot read it */
 .tcap { position: absolute; transform: translateX(-50%); max-width: 184px; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; line-height: 16px; padding: 1px 7px; border-radius: 5px;
   background: var(--bg); color: var(--muted); font-weight: 600; white-space: nowrap; pointer-events: none; }
 .tox { position: absolute; transform: translate(-50%, -50%); width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 1.5px solid var(--fg); background: var(--bg); color: var(--fg);
@@ -1276,7 +1279,7 @@ function typeTree(s) {
       p = sub.get(k);
     }
     const ids = uniq((ty['카드'] || []).filter(id => byId.has(id))); ids.forEach(id => used.add(id));
-    p.children.push(tnode(`${s.id}/${ty.id}`, strip(ty['이름'] || ty.id, sn || top), { kind: 'type', cards: ids, gap: ty['빈 곳'] }));
+    p.children.push(tnode(`${s.id}/${ty.id}`, strip(ty['이름'] || ty.id, sn || top), { kind: 'type', cards: ids, gap: ty['빈 곳'], refs: (ty['자료'] || []).filter(id => byId.has(id)), outs: ty['밖 자료'] || [] }));
   });
   // 「문장에 보이는 신호 말」 (국어 독서): cards switched on by passage sentences, not by 발문 — the entry page's question node and its labelled edges
   area.forEach((a, top) => {
@@ -1318,7 +1321,7 @@ function branchTree(s) {
 }
 function layerTree(s) {   // 세계지리: 단계 split is 28/7 (one side all ③), 종류 split is 23/9/3 — 사실 (외울 것) vs 푸는 법 is the real 질적 차이, so O/X first
   const ms = methodsOf(s), t = tnode(s.id, s.label, { kind: 'subj' });
-  if (!ms.length) { t.cards = []; t.path = '아직 카드 없음'; return t; }
+  if (!ms.length) { t.cards = []; t.refs = nodes.filter(n => n.kind === 'page' && n.subject === s.label).map(n => n.id); t.path = t.refs.length ? `카드 없음 · 노션 페이지 ${t.refs.length}` : '아직 카드 없음'; return t; }
   const rest = ms.filter(m => !isFact(m)), NONE = '(종류 없음)', ly = m => (m.layer || []).length ? m.layer : [NONE];
   Object.assign(t, { crit: '기준: 외워 둘 사실인가', path: '외울 사실인가 (O/X) → 단원 · 종류 → 카드' });
   // 사실 side splits by the 마스터본 단원 each card sits in (parent section, in master heading order) so 23 facts don't stand in one column
@@ -1340,7 +1343,8 @@ const TREE = tnode('root', 'METHOD', { kind: 'root', crit: '기준: 과목', pat
 })(TREE);
 TREE.children.forEach(s => (function walk(n) { (n.cards || []).forEach(id => s.occ.set(id, (s.occ.get(id) || 0) + 1)); n.children.forEach(walk); })(s));
 const subjNode = name => TREE.children.find(c => c.name === name);
-const countText = n => n.ct || (n.nct && !n.ids.size) ? `행 ${n.nct}` : `카드 ${n.ids.size}` + (n.nct ? ` · 코어테마 행 ${n.nct}` : '');
+const nref = n => (n.refs || []).length + (n.outs || []).length, stuff = n => (n.cards ? n.cards.length : 0) + nref(n);   // what a 유형 box opens onto: cards + linked material
+const countText = n => (n.ct || (n.nct && !n.ids.size) ? `행 ${n.nct}` : `카드 ${n.ids.size}` + (n.nct ? ` · 코어테마 행 ${n.nct}` : '')) + (nref(n) ? ` · 자료 ${nref(n)}` : '');
 const vtCompact = new Set();   // trees that started with card stacks folded: 유형 leaves listed in one column under their parent
 const vtWrap = new Map();   // per tree: how many bands the top split wraps into
 const vtCol = new Map();   // per tree: stack column height limit (px) — a tall card / 유형 column wraps into side-by-side columns so a landscape screen fills across (10-08)
@@ -1372,7 +1376,7 @@ function setTree(k) {
   }
   vtFit(false, vtCompact.has(vtKey)); route();
 }
-function stackKeys() { const ks = []; (function walk(n) { if (n.cards && !n.children.length && n.cards.length) ks.push(n.key); n.children.forEach(walk); })(vtRoot()); return ks; }
+function stackKeys() { const ks = []; (function walk(n) { if (n.cards && !n.children.length && stuff(n)) ks.push(n.key); n.children.forEach(walk); })(vtRoot()); return ks; }
 function treeShow() { if (!vtKey) setTree(V2.ts || '전체'); else if (!VW) { drawTree(); vtFit(false, vtCompact.has(vtKey)); } }
 function treeHead() {
   const R = vtRoot(), h = $('#vt-h'); h.textContent = '';
@@ -1419,11 +1423,12 @@ function drawTree() {
   const grows = d => kr < 0.9 && (d.children || listKids(d.data)) && d.data.kind !== 'type';
   const leaf = (cls, text, w) => { const b = el('button', cls, text); b.type = 'button'; b.style.width = w + 'px'; vtD.append(b); return b; };
   const items = real.map(d => {
-    const n = d.data, b = el('button', `tn k-${n.kind}`), more = n.children.length || (n.cards && n.cards.length); b.type = 'button'; b.dataset.key = n.key;
+    const n = d.data, b = el('button', `tn k-${n.kind}`), more = n.children.length || stuff(n); b.type = 'button'; b.dataset.key = n.key;
     if (n.subj) b.style.setProperty('--sc', `var(--c-${n.subj}, var(--c-범과목))`);
     const nm = el('span', 'nm', n.name), ct = el('span', 'ct', countText(n) + (n.kind === 'type' && n.cards ? (open(n) ? ' ▾' : ' ▸') : '')); b.append(nm, ct);
     if (more) { b.setAttribute('aria-expanded', open(n)); if (!open(n)) b.classList.add('shut'); }
-    if (n.kind === 'type' && n.cards && !n.cards.length) b.classList.add('empty');
+    if (n.kind === 'type' && n.cards && !stuff(n)) b.classList.add('empty');
+    else if (n.cards && !n.cards.length && nref(n)) b.classList.add('refonly');
     if (n.kind === 'subj' && !open(n) && n.path) b.append(el('span', 'pth', n.path));
     if (listKids(n) && n.crit) b.append(el('span', 'pth', n.crit));   // a listed split has no stem to hang its 「기준」 on: it goes inside the box
     let w = CW, cf = 11.5, rm = CW;
@@ -1445,11 +1450,20 @@ function drawTree() {
       const gapNote = t.gap && t.gap !== 'none' ? t.gap : '';
       if (!t.cards.length) { const g = leaf('tc tgap', t.ct ? '행 없음' : '카드 없음', CW - ind); g.__gap = { n: t, text: gapNote || '이 자리에 카드가 아직 없음' }; it.stack.push({ c: g, ind }); }
       else if (/^일부/.test(gapNote)) { const g = leaf('tc tgap part', '일부 빈 곳', CW - ind); g.__gap = { n: t, text: gapNote }; it.stack.push({ c: g, ind }); }
+      (t.refs || []).forEach(id => {   // linked Notion material: a page or a 마스터본 heading — opens like a card
+        const m = byId.get(id), c = leaf('tc tref', null, CW - ind); c.dataset.card = id;
+        c.append(el('span', 'tid', m.kind === 'page' ? '노션 페이지' : '마스터본 목차'), el('span', 'tl', m.label));
+        if (!vtEls.has(id)) vtEls.set(id, []); vtEls.get(id).push(c); it.stack.push({ c, ind });
+      });
+      (t.outs || []).forEach(x => {   // material outside Notion METHOD: named so it is not forgotten, but the map cannot open it
+        const [src, ...rest] = x.split(' · '), g = leaf('tc tgap tout', null, CW - ind); g.append(el('span', 'tid', `노션 밖 · ${src}`), el('span', 'tl', rest.join(' · ') || x));
+        g.__gap = { n: t, text: `${x} — 노션 METHOD 밖에 있어서 지도가 읽지 못한다. 노션으로 옮기면 카드나 자료로 잡힌다.` }; it.stack.push({ c: g, ind });
+      });
     };
     if (!(d.children || []).some(c => c.data.ph == null) && open(n)) {
       const boxInto = (t, ind) => {   // a listed 유형 or group: its own box, one column step in
-        const nc = t.cards ? t.cards.length : 0, more = t.children.length || nc;
-        const tb = leaf(`tn k-${t.kind}${t.cards && !nc ? ' empty' : ''}${t.children.length && !open(t) ? ' shut' : ''}`, null, CW - ind); tb.dataset.key = t.key;
+        const nc = stuff(t), more = t.children.length || nc;
+        const tb = leaf(`tn k-${t.kind}${t.cards && !nc ? ' empty' : t.cards && !t.cards.length ? ' refonly' : ''}${t.children.length && !open(t) ? ' shut' : ''}`, null, CW - ind); tb.dataset.key = t.key;
         tb.style.setProperty('--sc', `var(--c-${t.subj}, var(--c-범과목))`);
         tb.append(el('span', 'nm', t.name), el('span', 'ct', countText(t) + (nc ? (open(t) ? ' ▾' : ' ▸') : '')));
         if (t.children.length && t.crit && open(t)) tb.append(el('span', 'pth', t.crit));
@@ -1457,7 +1471,7 @@ function drawTree() {
         if (t.cards && !nc) { tb.classList.add('tgap'); tb.__gap = { n: t, text: t.gap && t.gap !== 'none' ? t.gap : '이 자리에 카드가 아직 없음' }; }   // the dashed box is the gap itself
         it.stack.push({ c: tb, ind });
       };
-      const listInto = (t, ind) => t.children.forEach(c => { boxInto(c, ind); if (open(c)) c.kind === 'type' ? (c.cards.length && cardsInto(c, ind + 14)) : listInto(c, ind + 14); });
+      const listInto = (t, ind) => t.children.forEach(c => { boxInto(c, ind); if (open(c)) c.kind === 'type' ? (stuff(c) && cardsInto(c, ind + 14)) : listInto(c, ind + 14); });
       if (listKids(n)) listInto(n, 14);
       else if (n.cards) cardsInto(n, 14);
     }
@@ -1574,7 +1588,7 @@ function vtShowStack(key, ids) {   // zoom so a just-opened 유형 and its cards
 }
 vtZ.addEventListener('click', e => {
   const g = e.target.closest('.tgap'); if (g) { const n = g.__gap.n; openSheet({ kind: 'gap', label: n.name, gap: g.__gap.text, where: `${n.subj || ''} 구조 · ${g.textContent}` }); return; }
-  const c = e.target.closest('.tc'); if (c) { const id = c.dataset.card; select(id, 'stay'); hiTree(id); const r = c.getBoundingClientRect(); if (wide() && r.right > innerWidth - sheet.offsetWidth) vtCenter(c); return; }
+  const c = e.target.closest('.tc'); if (c) { const id = c.dataset.card; els.has(id) ? select(id, 'stay') : openSheet(byId.get(id)); hiTree(id); const r = c.getBoundingClientRect(); if (wide() && r.right > innerWidth - sheet.offsetWidth) vtCenter(c); return; }
   const b = e.target.closest('.tn'); if (b) { if (b.hasAttribute('aria-expanded')) toggleNode(b.dataset.key); return; }
   if (!sheet.hidden) closeSheet();
 });
