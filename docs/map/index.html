@@ -2,13 +2,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>METHOD 지도</title>
 <link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@900&display=swap">
 <style>
 /* METHOD 지도 — three views of one data set (graph.js): A 진입 흐름도 (entry pages: question → action → card chips),
    B 단서 → 행동 표 (one row per card), C 포스터 (과목 › 갈래 › 절 rows × 풀이 단계 lanes › 카드, panned and zoomed by a
    single CSS transform). Poster zoom bands (data-z on <html>) only toggle visibility, so nothing reflows while zooming.
    Colour: the six 과목 hues on quiet cool neutrals; 오답 heat is one red luminance ramp; UI chrome stays ink-monochrome;
    View A adds four fixed meanings (단서 blue · 행동 graphite · 함정 red · 예시 green) used for nothing else there.
-   Type: the device's Korean system face (what Notion uses on iPad) — no webfont, so the poster never shifts after load. */
+   Type: the device's Korean system face (what Notion uses on iPad); the 에바 skin adds one webfont (Noto Serif KR 900) only on headings
+   whose width no script measures, so a late font swap never moves the poster, tree or flow layout. */
 :root {
   --bg: #e9ebef; --fg: #171b21; --muted: #5c6673; --line: #cdd3db; --block: #f6f7f9; --card: #ffffff;
   --ink: #1f2630; --ink-fg: #ffffff; --danger: #c62828; --focus: #1f2630;
@@ -26,6 +29,16 @@
   --bg: #14171c; --fg: #e4e8ee; --muted: #9aa4b2; --line: #2b323c; --block: #1b1f26; --card: #232931;
   --ink: #e4e8ee; --ink-fg: #14171c; --danger: #ff6b6b; --focus: #e4e8ee;
   --h1: #4b2a28; --h2: #7d3b35; --h3: #b84a40; --c-범과목: #8b949e; --cue: #6cb2ff; --act: #e4e8ee; --trap: #ff6b6b; --ex: #4cd964; --ctl: #707b8b; --ex-bg: #4cd964; --ex-on: #14171c; --cue-t: #6cb2ff; color-scheme: dark }
+/* 10-09 에반게리온 스킨 (우뢰): 지도 안 색(과목·오답 열·카드·단서/함정 · 라이트/다크 둘 다)은 위 원래 값 그대로.
+   스킨 = 위 막대·보기 머리줄(항상 에바 다크) · 큰 지도/구조 바탕의 육각 격자 · 제목 글씨 · 테두리 · 조작 버튼 */
+:root { --eva: #7a4bc0; --go: #a6f26b; --go-fg: #0c0a12; --warn: #ff8a1f;
+  --title: "Noto Serif KR", "AppleMyungjo", "Batang", serif; }   /* title-card serif — only on headings whose width no script measures */
+#bar, .va-h, #hud, #fit { --bg: #0f0c16; --fg: #ece6f5; --muted: #a89cbd; --line: #33294a; --block: #15111f; --card: #1d1829; --ctl: #6e5f8a;
+  --ink: #ece6f5; --ink-fg: #0f0c16; --danger: #ff6b6b; --focus: #a6f26b; color: var(--fg); color-scheme: dark; }
+.va-h { background: var(--block); }
+::selection { background: var(--go); color: var(--go-fg); }
+html { scrollbar-color: var(--ctl) var(--bg); }
+input { caret-color: var(--go); }
 
 html, body { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font); overflow: hidden; -webkit-text-size-adjust: 100%; }
@@ -161,7 +174,7 @@ marker path { fill: var(--ink); stroke: none; }
 .fchip[aria-pressed="true"], .fchip.clr { background: var(--ink); color: var(--ink-fg); border-color: var(--ink); }
 .fchip[aria-pressed="true"] small { color: inherit; opacity: 0.8; }
 #res { position: absolute; left: 12px; right: 12px; top: 100%; margin-top: 4px; max-height: 50vh; overflow: auto; background: var(--card); border: 1px solid var(--line);
-  border-radius: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18); display: grid; padding: 4px; }
+  border-radius: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); display: grid; padding: 4px; }
 #res button { text-align: left; background: none; border: 0; min-height: 44px; padding: 8px 10px; border-radius: 8px; display: grid; gap: 2px; }
 #res button:hover { background: var(--bg); }
 #res small, #res .empty { color: var(--muted); font-size: 12px; }
@@ -397,6 +410,25 @@ sup.ai { font-size: 10px; border: 1px dashed var(--muted); border-radius: 4px; p
 .lnk { background: none; border: 0; padding: 4px 0; color: var(--fg); text-decoration: underline; text-align: left; font-size: 14px; min-height: 44px; }
 .prov { margin-top: 14px; font-size: 11.5px; color: var(--muted); word-break: break-all; }
 #sheet ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.5; }
+
+/* ---- 에반게리온 스킨: title-card serif · hazard band under the bar · hex grid on the pannable canvases · angular panels ---- */
+.brand, .subj-h h1, .br-h h2, .far-l, .va-h h1, #sheet h2, .unit h3 { font-family: var(--title); font-weight: 900; letter-spacing: -0.02em; }
+.brand { font-size: 17px; color: var(--fg); padding-right: 10px; border-right: 2px solid var(--warn); }
+#bar { background: color-mix(in srgb, var(--bg) 92%, transparent); border-bottom: 0; }
+#bar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -5px; height: 5px; pointer-events: none;
+  background: repeating-linear-gradient(-45deg, var(--warn) 0 9px, var(--bg) 9px 18px); }
+#view, #vt-z, #va-z {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 0 56 16.2v32.4L28 64.7 0 48.5V16.2zM28 64.7V97' fill='none' stroke='%237a4bc0' stroke-opacity='.18' stroke-width='1'/%3E%3C/svg%3E"); }
+.subj { border-radius: 6px; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc) 35%, transparent); }
+.br { border-radius: 4px; border-color: color-mix(in srgb, var(--eva) 55%, var(--line)); }
+.card, .unit, .tr, .sg, .tn, .tc, .pg { border-radius: 3px; }
+.tabs, .tabs button, #q, .sm, .btn, #fit, #hud, #res, #toast { border-radius: 3px; }
+.tabs button[aria-pressed="true"], .fchip[aria-pressed="true"], .fchip.clr, .sm[aria-pressed="true"], #fit { background: var(--go); color: var(--go-fg); border-color: var(--go); box-shadow: 0 0 14px -3px color-mix(in srgb, var(--go) 70%, transparent); }
+#fit { letter-spacing: 0.04em; }
+.ribbon, .tnone, .badge { letter-spacing: 0.02em; }
+#sheet { border-top: 3px solid var(--eva); }
+@media (min-width: 1024px) { #sheet { border-top: 0; border-left: 3px solid var(--eva); } }
+#hud { font-family: ui-monospace, "SF Mono", Consolas, monospace; }
 </style>
 
 <header id="bar">
