@@ -21,3 +21,5 @@
 !/work/handoff/
 /work/handoff/*
 !/work/handoff/annot_1014_geo_mock.md
+data/briefing.json
+data/mood.jsonl
